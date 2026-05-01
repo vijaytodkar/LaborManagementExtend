@@ -1,0 +1,27 @@
+[
+    {
+        "name": "notificationType",
+        "type": "string",
+        "alias": "notificationType"
+    },
+    {
+        "name": "ProjectHierarchy",
+        "type": "string",
+        "alias": "ProjectHierarchy"
+    },
+    {
+        "name": "manageCostingSecurity",
+        "type": "string",
+        "alias": "manageCostingSecurity"
+    },
+    {
+        "name": "RetroactiveAdjReport",
+        "type": "string",
+        "alias": "RetroactiveAdjReport"
+    },
+    {
+        "name": "TenantURL",
+        "type": "string",
+        "alias": "TenantURL"
+    }
+]

@@ -1,0 +1,20 @@
+{
+  "id": 1,
+  "label": "Send Back Costing Allocation",
+  "name": "SendBackCostingAllocation",
+  "description": "Business Process Type for SendBackCostingAllocation",
+  "useForOrchestrate": true,
+  "allowsCancel": true,
+  "actionSteps": [
+    {
+      "pageRoute": "/CostingAllocationSendBack/{eventStepId}",
+      "label": "Send Back Costing Allocation",
+      "name": "SendbackCostingAllocation",
+      "id": 1
+    }
+  ],
+  "targetBusinessObject": "CostingAllocationRequestTransaction",
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ]
+}

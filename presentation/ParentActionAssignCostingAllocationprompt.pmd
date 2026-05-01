@@ -1,0 +1,206 @@
+{
+  "id": "ParentActionAssignCostingAllocationprompt",
+  "endPoints": [
+    {
+      "name": "eventStep",
+      "baseUrlType": "WORKDAY-BP",
+      "url": "<% 
+       console.info('event step: ', json:asJSON(queryParams.eventStepId));
+       '/eventSteps/' + queryParams.eventStepId %>",
+      "authType": "sso"
+    },
+    {
+      "name": "event",
+      "baseUrlType": "WORKDAY-BP",
+      "url": "<% '/events/' + eventStep.event.id %>",
+      "authType": "sso"
+    },
+    {
+      "name": "getbpworker",
+      "baseUrlType": "Workday-WQL",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT aboutWorker,cf_XNTDAPTPrehireWorkerOnTheActionEvent as prehire, actionEvent FROM businessProcessTransactions where actionEvent IN (\\'' + event['for'].id+ '\\')'); %>",
+      "authType": "sso"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getbpworker.data[0].aboutWorker.id); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, position FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers)  WHERE worker IN (\\'' + getbpworker.data[0].aboutWorker.id + '\\')') %>",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT workSpaceLevel4 as department, worker, academicRankForPrimaryAcademicAppointment as rank, academicTenureStatusForCommitteeCandidate as tenureStatus FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + getbpworker.data[0].aboutWorker.id + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getPrehireWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getbpworker.data[0].prehire.id); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, pre_Hire,position FROM allWorkersForPre_Hires WHERE pre_Hire IN (\\'' + getbpworker.data[0].prehire.id + '\\')') %>",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT workSpaceLevel4 as department, worker, academicRankForPrimaryAcademicAppointment as rank, academicTenureStatusForCommitteeCandidate as tenureStatus FROM  allWorkersForPre_Hires (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + getbpworker.data[0].aboutWorker.id + '\\')') %>"
+    }
+  ],
+  "onLoad": "<%  
+           console.debug(' eventStep  '+ json:asJSON(eventStep));  
+         console.debug(' getbpworker  '+ json:asJSON(getbpworker ?? []));   
+           console.debug(' getWorkerData  '+ json:asJSON(getWorkerData ?? []));   
+               console.debug(' getPrehireWorkerData  '+ json:asJSON(getPrehireWorkerData ?? []));  
+          %>",
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "outboundFlowVars",
+        "type": "outboundVariable",
+        "variableScope": "flow",
+        "values": [
+          {
+            "outboundPath": "grid",
+            "value": "<% pageVariables.dynamicGrid %>"
+          },
+          {
+            "outboundPath": "position",
+            "value": "<% position.value[0] ?? '' %>"
+          },
+          {
+            "outboundPath": "worker",
+            "value": "<% workerObject.value[0] ?? '' %>"
+          },
+          {
+            "outboundPath": "periodDates",
+            "value": "<% pageVariables.gridFunction ?? '' %>"
+          },
+          {
+            "outboundPath": "startDate",
+            "value": "<% startDate.value ?? '' %>"
+          },
+          {
+            "outboundPath": "endDate",
+            "value": "<% endDate.value.add('MONTH',1).minusDays(1) ?? '' %>"
+          },
+          {
+            "outboundPath": "requestType",
+            "value": "<% 'Edit' %>"
+          },
+          {
+            "outboundPath": "eventStepID",
+            "value": "<% (!empty queryParams.eventStepId ? queryParams.eventStepId : flowVariables.eventStepID )  %>"
+          }
+        ]
+      }
+    ]
+  },
+  "onSubmit": "<%
+    pageVariables.gridFunction = GridScripts.getDatesArray(startDate.value, endDate.value, 'MONTH', 'prompt');
+    pageVariables.dynamicGrid = [];
+    var workTagPayload = {
+      'name': 'WorkTags',
+      'id': 'workTag',
+      'type': 'string',
+      'dataField': 'WorkTags'
+    }
+    pageVariables.dynamicGrid.add(workTagPayload);
+    for (var numCol : pageVariables.gridFunction){
+      var colPayload = {
+        'name': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy'),
+        'id': numCol.id,
+        'type': 'string',
+        'dataField': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy')
+      };
+      pageVariables.dynamicGrid.add(colPayload);
+    }
+  %>",
+  "include": [
+    "GridScripts.script"
+  ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "section",
+          "id": "workerData",
+          "horizontal": false,
+          "children": [
+            {
+              "type": "instanceList",
+              "id": "workerObject",
+              "label": "Worker",
+              "enabled": false,
+              "values": "<% [] %>",
+              "selectedValuesAndDescriptors": "<% ! empty getWorkerData.data[0].worker ? [getWorkerData.data[0].worker] : ! empty getPrehireWorkerData.data[0].worker ? [getPrehireWorkerData.data[0].worker] : [] %>"
+            },
+            {
+              "type": "instanceList",
+              "id": "position",
+              "label": "Position",
+              "required": true,
+              "enabled": false,
+              "selectedValuesAndDescriptors": "<% ! empty getWorkerData.data[0].position ? [getWorkerData.data[0].position] : ! empty getPrehireWorkerData.data[0].position ? [getPrehireWorkerData.data[0].position] : [] %>",
+              "values": "<%  [] %>"
+            },
+            {
+              "type": "fieldSet",
+              "id": "helpTextDate",
+              "title": "Date Range For Display",
+              "children": [
+                {
+                  "type": "date",
+                  "id": "startDate",
+                  "label": "Start Date",
+                  "required": true,
+                  "datePrecision": "MONTH",
+                  "value": "<% date:getTodaysDate(date:getDateTimeZone(userTimeZone)) %>",
+                  "onChange": "<%
+                    if(!empty(endDate.value) && !empty(startDate.value)){
+                      if((endDate.value ?? '') < (startDate.value ?? '')){
+                        endDate.setError('End date must be after the start date');
+                      }else{
+                        endDate.clearError();
+                      }
+                    }else{
+                      endDate.clearError();
+                    }
+
+                  %>"
+                },
+                {
+                  "type": "date",
+                  "id": "endDate",
+                  "label": "End Date",
+                  "required": true,
+                  "datePrecision": "MONTH",
+                  "value": "<% date:parse(date:getTodaysDate(date:getDateTimeZone(userTimeZone))).plusMonths(6).toString(); %>",
+                  "onChange": "<%
+                               if(!empty(endDate.value) && !empty(startDate.value)){
+                                   if((endDate.value ?? '') < (startDate.value ?? '')){
+                                       endDate.setError('End date must be after the start date');
+                                   }else{
+                                       endDate.clearError();
+                                   }
+                               }else{
+                                   endDate.clearError();
+                               }
+
+                               %>"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "enabled": "false",
+          "value": "Powered By Workday Extend"
+        }
+      ]
+    }
+  }
+}

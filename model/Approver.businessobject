@@ -1,0 +1,59 @@
+{
+  "id": 5,
+  "name": "Approver",
+  "label": "Approver",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "approvers",
+    "label": "Approvers"
+  },
+  "fields": [
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": true,
+      "target": "WORKER",
+      "isPurgeable": false,
+      "useForDisplay": true,
+      "type": "SINGLE_INSTANCE",
+      "name": "worker",
+      "id": 1
+    },
+    {
+      "enableIndex": false,
+      "isPurgeable": false,
+      "type": "BOOLEAN",
+      "name": "approved",
+      "id": 2
+    },
+    {
+      "precision": "DAY",
+      "enableIndex": false,
+      "isPurgeable": false,
+      "type": "DATE",
+      "name": "approvalDate",
+      "id": 3
+    },
+    {
+      "id": 4,
+      "name": "costingAllocationRequest",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "target": "CostingAllocationRequestTransaction",
+      "secureByTarget": true,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 5,
+      "name": "action",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    }
+  ]
+}

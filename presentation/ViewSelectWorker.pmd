@@ -1,0 +1,143 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "ViewSelectWorker",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkers",
+      "authType": "sso",
+      "_exclude": "<% empty(flowVariables.workerID); %>",
+      "url": "<%
+        var variables = [(!empty(flowVariables.SupOrg)? ('supervisoryOrganization IN (\\'' + flowVariables.SupOrg.id + '\\') ')  : null), (!empty(flowVariables.costCenter)? ( 'costCenter IN (\\'' + flowVariables.costCenter.id + '\\') ') : null)];
+        var whereFilter = !empty(variables)? ('WHERE ' + list:nonNull(variables).join(' AND ')) : '';
+        if(empty(variables)){
+          var costingAllocationFilter = ' WHERE costingAllocationExistsForWorker = true'
+        }else{
+          var costingAllocationFilter = ' AND costingAllocationExistsForWorker = true'
+        }
+
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers)' + (whereFilter ?? '') + (costingAllocationFilter ?? ''));
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getRetroactiveWorker",
+      "authType": "sso",
+      "exclude": "<% empty(getWorkers.data); %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE active = true AND hasRetroActiveTransaction = true AND worker IN (\\'' + getWorkers.data.map(x =>{x.id}).join('\\',\\'') + '\\')');
+      %>"
+    }
+  ],
+  "onLoad": "<%
+    pageVariables.retroactiveWorkers = getRetroactiveWorker.data ?? [];
+  %>",
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "standardEditButtonsHidden": true,
+    "title": {
+      "type": "title",
+      "label": "View Selected Workers Costing Allocation"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "searchQuery",
+          "horizontal": true,
+          "children": [
+            {
+              "type": "text",
+              "id": "supOrg",
+              "label": "Supervisory Organization",
+              "enabled": false,
+              "value": "<% flowVariables.SupOrg.descriptor ?? '' %>"
+            },
+            {
+              "type": "text",
+              "id": "costCenter",
+              "label": "Cost Center",
+              "enabled": false,
+              "value": "<% flowVariables.costCenter.descriptor ?? '' %>"
+            },
+            {
+              "type": "checkBox",
+              "id": "hasRetroActive",
+              "visible": false,
+              "label": "Has Retroactive Transaction",
+              "onChange": "<% 
+              //filters the grid to show workers with retroactive transaction
+                if(self.value == true){
+                  workersGrid.setRows(pageVariables.retroactiveWorkers);
+                }else{
+                  workersGrid.setRows(getWorkers.data);
+                }
+              %>"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "workersGrid",
+          "label": "Workers",
+          "rows": "<% getWorkers.data ?? [] %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "rowVariableName": "worker",
+          "enabled": false,
+          "columns": [
+            {
+              "sortableAndFilterable": true,
+              "type": "column",
+              "columnId": "workerNameCol",
+              "label": "Name",
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "workerName",
+                "value": "<% worker.worker.descriptor ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "viewCostingAllocationCol",
+              "label": "View Costing Allocation",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "viewCostingAllocationFieldSet",
+                "children": [
+                  {
+                    "type": "externalLink",
+                    "id": "viewCostingAllocation",
+                    "enabled": false,
+                    "descriptor": "View Costing Allocation",
+                    "_url": "<% 'https://wd5-impl.workday.com/' + tenant + '/d/wday/app/LaborManagementV2_gnqwhx/LaborManagementV2_gnqwhx/ViewAllCostingAllocations.htmld?workerID=' + (worker.worker.id ?? '') %>",
+                    "url": "<% attrstore.TenantURL + tenant + '/d/wday/app/' + site.applicationId  + '/' + site.applicationId + '/ViewAllCostingAllocations.htmld?workerID=' + (worker.worker.id ?? '')  %>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "id": "backButton",
+          "action": "LINK",
+          "label": "<< Back",
+          "taskReference": {
+            "taskId": "SearchWorkerByOrganization",
+            "parameterBindings": {
+              "costCenterId": "<% flowVariables.costCenter ?? '' %>",
+              "supOrgId": "<% flowVariables.SupOrg ?? '' %>"
+            }
+          }
+        }
+      ]
+    },
+    "pageType": "EDIT"
+  }
+}

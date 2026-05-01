@@ -1,0 +1,565 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "workerProfileCostingAllocation",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerCostingAllocations",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(queryParams.workerID ?? routeParams.workerID); %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT startDate, endDate, position, workerEarning, allocationDetail, allocationDetail{cf_XTNDLBCARIWorkerSOCOnWorkerSchedule as socCosting,costingCompany, allCostingAllocationWorktagsAsOfAllocationStartDate, distributionPercent, workdayID as id, allSalaryOverTheCapSuballocations} as costingAllocationDetails FROM workerCostingOverride WHERE (endDate > \\'' + date:now().format('yyyy-MM-dd') + '\\' OR endDate IS EMPTY) AND worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerDataInformation",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(((queryParams.workerID ?? routeParams.workerID) ?? '')); %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT cf_XTNDWorkersCompanyReferenceID as workerCompany FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')') %>"
+    },  
+    {
+      "name": "getCurrentWorker",
+      "url": "/workers/me",
+      "exclude": "false",
+      "authType": "sso",
+      "baseUrlType": "WORKDAY-COMMON",
+      "bestEffort": true
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getFutureWorkerInfo",
+      "authType": "laborISUV2",
+      "comment" : "added by Pasha for future hires case 01/26/2026",
+      "exclude": "<% empty(((queryParams.workerID ?? routeParams.workerID) ?? '')); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT workdayID, hireDate FROM allWorkers WHERE worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')')
+      %>"
+    }, 
+     {
+      "baseUrlType": "Workday-WQL",
+      "name": "getFutureWorkerDataInformation",
+      "authType": "laborISUV2",
+       "comment" : "added by Pasha for future hires case 01/26/2026",
+      "exclude": "<% empty(((queryParams.workerID ?? routeParams.workerID) ?? '')); %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT cf_XTNDWorkersCompanyReferenceID as workerCompany FROM allWorkers (effectiveAsOfDate = \\'' + (getFutureWorkerInfo.data[0].hireDate) + '\\') WHERE worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')')
+        %>"    
+    },		
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getCurrentWorker.id); %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT cf_CF_LRV_WorkerSecurityGroups as securityGroups FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + (getCurrentWorker.id ?? '') + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getRetroactiveWorker",
+      "authType": "sso",
+      "exclude": "<% empty((queryParams.workerID ?? routeParams.workerID)); %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE active = true AND hasRetroActiveTransaction = true AND worker IN (\\'' + (queryParams.workerID ?? '') + '\\')');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getPendingTransactions",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "exclude": "<% empty((queryParams.workerID ?? routeParams.workerID) ?? '') %>",
+      "_url": "<%
+        return '/data?query=' + string:urlEncode('SELECT worker, workdayID, status, approver, cf_XTNDLBCARIGetApproversNotApproved{worker, approved, approvalDate} as approvals FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (active = false AND (status = \\'Pending Approval\\' OR status CONTAINS(\\'Send Back\\' )) AND worker IN(\\''+ ((queryParams.workerID ?? routeParams.workerID) ?? '') +'\\'))');
+      %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT worker, workdayID, status, approver,costingAllocationTransactionPreparer, cf_XTNDLBCARIGetApproversNotApproved{worker, approved, approvalDate} as approvals FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (active = false AND (status = \\'Pending Approval\\' OR status CONTAINS(\\'Send Back\\' )) AND worker IN(\\''+ ((queryParams.workerID ?? routeParams.workerID) ?? '') +'\\'))');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSentBack",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "exclude": "<% empty(getPendingTransactions.data) %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT awaitingPersons, aboutWorker FROM labormanagement_v3_gnqwhx_sendBackCostingAllocationEvents WHERE  businessProcessTarget in (\\'' + getPendingTransactions.data[0].workdayID +  '\\') AND awaitingPersons IS NOT EMPTY ');
+
+      %>"
+    },
+     {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSentBackPreparer",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "exclude": "<% empty(getPendingTransactions.data) || empty(getPendingTransactions.data[0].costingAllocationTransactionPreparer.id ) %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT awaitingPersons, aboutWorker FROM labormanagement_v3_gnqwhx_sendBackCostingAllocationToPreparerEvents WHERE  businessProcessTarget in (\\'' + getPendingTransactions.data[0].costingAllocationTransactionPreparer.id +  '\\') AND awaitingPersons IS NOT EMPTY ');
+
+      %>"
+    },
+
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getEarningGroupFromAdminPage",
+      "authType": "laborISUV2",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, earningSortOrder, earningGroupName, earnings{workdayID as id, earningId, earningDescriptor} as earnings FROM labormanagement_v3_gnqwhx_earningGroups WHERE earningGroupFromAdminPage = true ORDER BY earningSortOrder ASC ');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSalaryOverTheCapWorkday",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<% console.info('get Salary over the cap Workday: ' + json:asJSON('SELECT allocationDetail, cf_XTNDLBCWorkersCostingLineSalaryOverTheCap{workdayID as id, allCostingAllocationWorktagsAsOfAllocationStartDate, customOrganization01 as budgetUnit, costCenter, fund, project_worktag, gift, customOrganization02 as activity, customOrganization03 as center, customOrganization04 as assignmentAllocation, distributionPercent as percent} as salaryOvertheCap FROM workerCostingOverride WHERE allocationDetail IN(\\'' + id + '\\')'));
+        return '/data?query=' + string:urlEncode('SELECT allocationDetail, cf_XTNDLBCWorkersCostingLineSalaryOverTheCap{workdayID as id, allCostingAllocationWorktagsAsOfAllocationStartDate, customOrganization01 as budgetUnit, costCenter, fund, project_worktag, gift, customOrganization02 as activity, customOrganization03 as center, customOrganization04 as assignmentAllocation, distributionPercent as percent} as salaryOvertheCap FROM workerCostingOverride WHERE allocationDetail IN(\\'' + id + '\\')'); 
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSecurityWorkerValidation",
+      "authType": "laborISUV2",
+      "exclude": "<% true || empty(getWorkerData) %>",
+      "url": "<% console.info('security query: ' + json:asJSON('SELECT permissions FROM allDomainSecurityPolicies WHERE ON permissions securityOperation in (Security_Operation_ID=viewModify_secOp) AND securityGroup in (\\'' + (getWorkerData.data[0].securityGroups.map(x =>{x.id ?? ''}).join('\\',\\'') ?? '') + '\\') WHERE permissions is not empty AND domainSecurityPolicy in (\\''+ attrstore.manageCostingSecurity  +'\\')'));
+        return '/data?query=' + string:urlEncode('SELECT permissions FROM allDomainSecurityPolicies WHERE ON permissions securityOperation in (Security_Operation_ID=viewModify_secOp) AND securityGroup in (\\'' + (getWorkerData.data[0].securityGroups.map(x =>{x.id ?? ''}).join('\\',\\'') ?? '') + '\\') WHERE permissions is not empty AND domainSecurityPolicy in (\\''+ attrstore.manageCostingSecurity  +'\\')'); 
+      %>"
+    },
+     {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getSecurityofWorker",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "url": "<%
+      return '/getSecurityWorker/launch?workerId='+(getCurrentWorker.id ?? '')+'&manageCostingSecurityId='+ attrstore.manageCostingSecurity %>"
+      
+    }
+  ],
+  "onLoad": "<%
+    pageVariables.tenantURLValue = attrstore.TenantURL ?? 'https://wd503.myworkday.com/';
+    
+
+   // console.info('getSecurityofWorkerDeffered data : ' + json:asJSON(getSecurityofWorkerDeffered.invoke() ?? ''));
+    pageVariables.retroactiveWorkers = getRetroactiveWorker.data ?? [];
+    pageVariables.costingAllocation = [];
+    var earningGroups = getEarningGroupFromAdminPage.data ?? [];
+    console.info('earningGroups --- ' + json:asJSON(earningGroups));
+     console.info('getWorkerCostingAllocations.data test ' + (json:asJSON(getWorkerCostingAllocations.data) ?? []));
+    for(var t: earningGroups){
+
+     // var firstEarningId = (t.earnings ?? []).map(q => q.earningId ?? '')[0] ?? '';
+    // console.info('firstEarningId --- '+ json:asJSON(firstEarningId));
+    // var wdDataFiltered = (getWorkerCostingAllocations.data ?? []).filter(l =>  firstEarningId == (l.workerEarning.id ?? '')) ?? [];
+
+      var wdDataFiltered = getWorkerCostingAllocations.data.filter(l =>{(t.earnings.map(q =>{q.earningId ?? ''})[0] ?? '') == (l.workerEarning.id ?? '')}) ?? [];  
+      console.info('wdDataFiltered new  -- ' + json:asJSON(wdDataFiltered));
+      for(var wdData: (wdDataFiltered ?? [])){        
+  
+        var salaryOverTheCapIDs = wdData.allSalaryOverTheCapSuballocations.map(y =>{y.id}) ?? [];
+        console.info('salaryOverTheCapIDs  --- ' + salaryOverTheCapIDs);
+      //  console.info('salary over the cap worker profile 1: '+ json:asJSON(wdData));
+        var firstSOC = true;
+        var isFirstValue = true;
+        for(var intervalData : (wdData.costingAllocationDetails ?? [])){
+          console.info('Test Pasha 04/19 interval data' + json:asJSON(intervalData));
+         // var salaryOverTheCapIDs = intervalData.allSalaryOverTheCapSuballocations.map(y =>{y.id}) ?? [];
+         var salaryOverTheCapIDs =  (intervalData.allSalaryOverTheCapSuballocations ?? []).map(y => y.id ?? '').filter(id => !empty(id));
+           console.info('salaryOverTheCapIDs inside --- ' + salaryOverTheCapIDs);
+           console.info(' Test Pasha 04/19 TF'+!empty(salaryOverTheCapIDs));
+          if(!empty(salaryOverTheCapIDs)){
+            console.info('Inside if 04/19');
+            var salaryOverTheCap = getSalaryOverTheCapWorkday.invoke({'id': (intervalData.id ?? '')}).data[0].salaryOvertheCap ?? [];
+            salaryOverTheCap = salaryOverTheCap.filter(u =>{salaryOverTheCapIDs.contains((u.id ?? ''))}) ?? [];
+             console.info('salaryOverTheCapIDs last --- ' + salaryOverTheCap);
+            for(var l : salaryOverTheCap){
+              if(firstSOC){
+                if(isFirstValue){
+                  var payload = {
+                    'startDate': (wdData.startDate ?? ''),
+                    'endDate': (wdData.endDate ?? ''),
+                    'position': (wdData.position ?? {:}),
+                    'earning': (t.earningGroupName ?? {:}),
+                    'allocationData': (intervalData ?? {:}),
+                    'salaryOverThecap': (l ?? {:})
+                  }
+                  console.info('Test Pasha 04/17 Payload1 ' + json:asJSON(payload));
+                  isFirstValue = false;
+                }else{
+                  var payload = {
+                    'allocationData': (intervalData ?? {:}),
+                    'salaryOverThecap': (l ?? {:})
+                  }
+                    console.info('Test Pasha 04/17 Payload2 ' + json:asJSON(payload));
+                }
+                firstSOC = false;
+              }else{
+                var payload = {
+                  //'allocationData': (wdData ?? {:}),
+                  'salaryOverThecap': (l ?? {:})
+                }
+                  console.info('Test Pasha 04/17 Payload3 ' + json:asJSON(payload));
+              }
+              pageVariables.costingAllocation.add(payload);           
+            }
+          
+          }else{
+            if(isFirstValue){
+              var payload = {
+                'startDate': (wdData.startDate ?? ''),
+                'endDate': (wdData.endDate ?? ''),
+                'position': (wdData.position ?? {:}),
+                'earning': (t.earningGroupName ?? {:}),
+                'allocationData': (intervalData ?? {:})
+              }
+                console.info('Test Pasha 04/17 Payload4 ' + json:asJSON(payload));
+              isFirstValue = false;
+            }else{
+              var payload = {
+                'allocationData': intervalData ?? {:}
+              }
+                console.info('Test Pasha 04/17 Payload5 ' + json:asJSON(payload));
+            }
+            pageVariables.costingAllocation.add(payload);
+          }
+        }
+      }
+    }
+    var earningsFromEarningGroup = getEarningGroupFromAdminPage.data.map(l =>{l.earnings}) ?? [];
+    console.info('earningsFromEarningGroup Test Pasha 04/17 --' + json:asJSON(earningsFromEarningGroup));
+    earningsFromEarningGroup = list:flatten(earningsFromEarningGroup).map(p =>{p.earningId?? ''}) ?? [];
+     console.info('earningsFromEarningGroup Flattern Test Pasha 04/17 --' + json:asJSON(earningsFromEarningGroup));
+    var workdayDataNotInEarningGroup = getWorkerCostingAllocations.data.filter(t =>{!(earningsFromEarningGroup.contains(t.workerEarning.id ?? ''))}) ?? [];
+ console.info('workdayDataNotInEarningGroup  Test Pasha 04/17 --' + json:asJSON(workdayDataNotInEarningGroup));
+    for(var t: workdayDataNotInEarningGroup){
+      var isFirstValue = true;
+      for(var wdData: t.costingAllocationDetails ?? []){
+        if(isFirstValue){
+          var payload = {
+            'startDate': (t.startDate ?? ''),
+            'endDate': (t.endDate ?? ''),
+            'position': (t.position ?? {:}),
+            'earning': (t.workerEarning.descriptor ?? {:}),
+            'allocationData': (wdData ?? {:})
+          }
+           console.info('Test Pasha 04/17 Payload6 ' + json:asJSON(payload));
+          isFirstValue = false;
+        }else{
+          var payload = {
+            'allocationData': wdData ?? {:}
+          }
+           console.info('Test Pasha 04/17 Payload7 ' + json:asJSON(payload));
+        }
+        pageVariables.costingAllocation.add(payload);
+      }
+    }    
+   
+  console.info('Test Pasha 04/17 pageVariables.costingAllocation Final' + json:asJSON(pageVariables.costingAllocation));
+
+
+  %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Worker Profile"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "costingAllocationButtons",
+          "horizontal": false,
+          "children": [
+            {
+              "type": "fieldSet",
+              "id": "pendingTransaction",
+              "visible": "<% !empty(getPendingTransactions.data[0].workdayID) %>",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hasPendingTransaction",
+                  "enabled": false,
+                  "value": "This User has a pending transaction"
+                },
+                {
+                  "type": "text",
+                  "id": "worker",
+                  "label": "Worker",
+                  "enabled": false,
+                  "value": "<% getPendingTransactions.data[0].worker.descriptor ?? '' %>"
+                },
+                {
+                  "type": "text",
+                  "id": "pendingOn",
+                  "label": "Pending Approval From: ",
+                  "enabled": false,
+                  "visible": "<% (getPendingTransactions.data[0].status ?? '') == 'Pending Approval' %>",
+                  "value": "<% (getPendingTransactions.data[0].approvals.map(t =>{(t.worker.descriptor ??'')}) ?? []).join(',') ?? ''; %>"
+                },
+                {
+                  "type": "text",
+                  "id": "sendBackWaitingOn",
+                  "label": "Sent Back to: ",
+                  "enabled": false,
+                   "_visible": "<% !empty(getSentBack.data[0])  %>",
+                  "visible": "<% !empty(getSentBack.data[0]) || !empty(getSentBackPreparer.data[0]) %>",
+                  "_value": "<% (getSentBack.data[0].awaitingPersons.map(t =>{(t.descriptor ??'')}) ?? []).join(',') ?? ''; %>",                   
+                   "value": "<% (getSentBack.data[0].awaitingPersons.map(t =>{(t.descriptor ??'')}) ?? (getSentBackPreparer.data[0].awaitingPersons.map(t =>{(t.descriptor ??'')}) ?? [])).join(',') ?? ''; %>"
+                },
+                {
+                  "type": "text",
+                  "id": "bPStatus",
+                  "label": "Status: ",
+                  "enabled": false,
+                  "value": "<% getPendingTransactions.data[0].status ?? '' %>"
+                }
+              ]
+            },
+            {
+              "type": "button",
+              "id": "assignCostingAllocationButton",
+              "label": "Maintain Costing Allocation",
+              "action": "PRIMARY",
+              "comment" : "below render was updated by Pasha for future hires case 01/26",
+              "_render": "<% ((empty(getWorkerData)) || (!empty(getSecurityofWorker.data[0].permissions) ))?  ((getWorkerDataInformation.data[0].workerCompany ?? '') == '100') : false %>",            
+              "render": "<% ((empty(getWorkerData)) || (!empty(getSecurityofWorker.data[0].permissions) ))?  ((getFutureWorkerDataInformation.data[0].workerCompany ?? '') == '100') : false %>",
+              "visible": "<% empty(getPendingTransactions.data[0].workdayID) %>",
+              "taskReference": {
+                "taskId": "AssignCostingAllocation_Prompts",
+                "parameterBindings": {
+                  "workerID": "<% ((queryParams.workerID ?? routeParams.workerID) ?? '') %>"
+                }
+              }
+            },
+            {
+              "type": "button",
+              "id": "viewCostingAllocationButton",
+              "label": "View Retroactive Costing",
+              "action": "PRIMARY",
+              "visible": "<% false %>",
+              "_visible": "<% !empty(pageVariables.retroactiveWorkers[0].id) %>",
+              "taskReference": {
+                "taskId": "ViewCostingAllocation",
+                "parameterBindings": {
+                  "workerID": "<% ((queryParams.workerID ?? routeParams.workerID) ?? '') %>"
+                }
+              }
+            },
+            {
+              "type": "externalLink",
+              "descriptor": "View Retroactive Costing",
+              "visible": "<% !empty(pageVariables.retroactiveWorkers[0].id) %>",
+              "render": "<% !empty(pageVariables.retroactiveWorkers[0].id) %>",
+              "id": "viewCostingAllocationExternalLink",
+              "_url": "<% 'https://impl.wd503.myworkday.com/' + tenant + '/d/wday/app/labormanagement_v3_gnqwhx/labormanagement_v3_gnqwhx/ViewCostingAllocation.htmld?workerID=' + (queryParams.workerID ?? routeParams.workerID) %>",
+              "url": "<% 
+              ((environment == 'PROD') ? 'https://wd503.myworkday.com/' : 'https://impl.wd503.myworkday.com/') + tenant + '/d/wday/app/labormanagement_v3_gnqwhx/labormanagement_v3_gnqwhx/ViewCostingAllocation.htmld?workerID=' + (queryParams.workerID ?? routeParams.workerID)  
+              %>"
+            }
+          ]
+        },
+        {
+          "autoPaging": true,
+          "enabled": false,
+          "type": "grid",
+          "id": "costingAllocationGrid",
+          "label": "Current and Future Costing Allocations",
+          "rows": "<% pageVariables.costingAllocation ?? [] %>",
+          "rowVariableName": "costingAllocation",
+          "columns": [
+            {
+              "type": "column",
+              "id": "colStartDate",
+              "label": "Start Date",
+              "columnId": "startDateCol",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "date",
+                "id": "startDate",
+                "value": "<%  costingAllocation.startDate ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "id": "colEndDate",
+              "label": "End Date",
+              "columnId": "endDateCol",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "date",
+                "id": "endDate",
+                "value": "<%  costingAllocation.endDate ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "id": "colPosition",
+              "label": "Position",
+              "sortableAndFilterable": true,
+              "columnId": "positionCol",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "positionSection",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "position",
+                    "_values": "<% !empty(costingAllocation.position )? [costingAllocation.position ?? ''] : [] %>",
+                    "selectedValues": "<%  [costingAllocation.position.id ?? ''] %>",
+                    "instanceListLoopTag": {
+                      "type": "instanceLoop",
+                      "templateInstance": {
+                        "id": "<% positionInstance.id %>",
+                        "descriptor": "<% positionInstance.descriptor %>",
+                        "wid": "<% positionInstance.id %>"
+                      },
+                      "on": "<% !empty(costingAllocation.position )? [costingAllocation.position ?? ''] : []  %>",
+                      "as": "positionInstance"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "id": "colEarning",
+              "label": "Earning Group",
+              "columnId": "earningCol",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "id": "earning",
+                "value": "<% !empty(costingAllocation.earning)? costingAllocation.earning : '' %>",
+                "_values": "<% !empty(costingAllocation.earning)? [costingAllocation.earning ?? ''] : [] %>",
+                "_selectedValues": "<%  !empty(costingAllocation.earning)? [costingAllocation.earning.id ?? ''] : [] %>",
+                "_instanceListLoopTag": {
+                  "type": "instanceLoop",
+                  "templateInstance": {
+                    "id": "<% earningInstance.id %>",
+                    "descriptor": "<% earningInstance.descriptor %>",
+                    "wid": "<% earningInstance.id %>"
+                  },
+                  "on": "<% !empty(costingAllocation.earning)? [costingAllocation.earning ?? ''] : [] %>",
+                  "as": "earningInstance"
+                }
+              }
+            },
+            {
+              "type": "column",
+              "id": "colworktags",
+              "label": "Costing",
+              "sortableAndFilterable": true,
+              "columnId": "worktagsCol",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "costingSection",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "worktags",
+                    "selectedValues": "<% 
+                    
+                       !empty(costingAllocation.allocationData.allCostingAllocationWorktagsAsOfAllocationStartDate[0].id)?  costingAllocation.allocationData.allCostingAllocationWorktagsAsOfAllocationStartDate.map(x =>{x.id}) :  []
+                    %>",
+                    "instanceListLoopTag": {
+                      "type": "instanceLoop",
+                      "templateInstance": {
+                        "id": "<% worktagInstance.id %>",
+                        "descriptor": "<% worktagInstance.descriptor %>",
+                        "wid": "<% worktagInstance.id %>"
+                      },
+                      "on": "<% !empty(costingAllocation.allocationData.allCostingAllocationWorktagsAsOfAllocationStartDate[0].id)?  costingAllocation.allocationData.allCostingAllocationWorktagsAsOfAllocationStartDate :  [] %>",
+                      "as": "worktagInstance"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "id": "colPercent",
+              "label": "Percentage",
+              "columnId": "percentCol",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "percentageSection",
+                "children": [
+                  {
+                    "type": "richText",
+                    "id": "percent",
+                    "value": "<% console.debug('distributionPercent',json:asJSON(costingAllocation.allocationData.distributionPercent));
+                      !empty(costingAllocation.allocationData.distributionPercent)? ('<p style=\"text-align: right;\">' + number:toBigDecimal(((costingAllocation.allocationData.distributionPercent  ?? 0)*100),2, 'DOWN') + '% </p>') : '';
+                    %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "id": "colsalaryOverTheCapworktags",
+              "label": "Salary Over the Cap Costing",
+              "sortableAndFilterable": true,
+              "columnId": "worktagsSOCCol",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "costingSOCSection",
+                "children": [
+                  {
+                    "type": "instanceList",
+                    "id": "worktags",
+                    "selectedValues": "<% 
+                    
+                       !empty(costingAllocation.salaryOverThecap.allCostingAllocationWorktagsAsOfAllocationStartDate[0].id)?  costingAllocation.salaryOverThecap.allCostingAllocationWorktagsAsOfAllocationStartDate.map(x =>{x.id}) :  []
+                    %>",
+                    "instanceListLoopTag": {
+                      "type": "instanceLoop",
+                      "templateInstance": {
+                        "id": "<% worktagInstance.id %>",
+                        "descriptor": "<% worktagInstance.descriptor %>",
+                        "wid": "<% worktagInstance.id %>"
+                      },
+                      "on": "<% !empty(costingAllocation.salaryOverThecap.allCostingAllocationWorktagsAsOfAllocationStartDate[0].id)?  costingAllocation.salaryOverThecap.allCostingAllocationWorktagsAsOfAllocationStartDate :  [] %>",
+                      "as": "worktagInstance"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "id": "colPercentSOC",
+              "label": "Salary Over the Cap Percentage",
+              "columnId": "percentSOCCol",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "percentageSOCSection",
+                "children": [
+                  {
+                    "type": "richText",
+                    "id": "percent",
+                    "value": "<%
+                      !empty(costingAllocation.salaryOverThecap.percent)? ('<p style=\"text-align: right;\">' + number:toBigDecimal(((costingAllocation.salaryOverThecap.percent  ?? 0)*100),2, 'CEILING') + '% </p>') : '';
+                    %>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "externalLink",
+          "descriptor": "View All Costing Allocations",
+          "render": "<% !empty(queryParams.workerID ?? routeParams.workerID) %>",
+          "_url": "<% 'https://impl.wd503.myworkday.com/' + tenant + '/d/wday/app/labormanagement_v3_gnqwhx/labormanagement_v3_gnqwhx/ViewAllCostingAllocations.htmld?workerID=' + (queryParams.workerID ?? routeParams.workerID)  %>",
+          "url": "<% ((environment == 'PROD') ? 'https://wd503.myworkday.com/' : 'https://impl.wd503.myworkday.com/') + tenant + '/d/wday/app/labormanagement_v3_gnqwhx/labormanagement_v3_gnqwhx/ViewAllCostingAllocations.htmld?workerID=' + (queryParams.workerID ?? routeParams.workerID)  %>"
+
+        }
+      ]
+    }
+  }
+}

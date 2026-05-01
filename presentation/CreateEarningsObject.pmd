@@ -1,0 +1,83 @@
+{
+  "securityDomains": [
+    "SetUpCostingAllocationAttributes"
+  ],
+  "id": "CreateEarningsObject",
+  "endPoints": [
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getEarnings",
+      "authType": "sso",
+      "httpMethod": "GET",
+      "url": "/GetReferencessSync/launch?referenceID=Earning_Code"
+    },
+    {
+      "baseUrlType": "WORKDAY-APP",
+      "name": "getExtendEarnings",
+      "authType": "sso",
+      "url": "/earnings"
+    }
+  ],
+  "onLoad": "<% 
+    pageVariables.earningsOnPage = getpageEarnings(getExtendEarnings, getEarnings);
+  %>",
+  "script": "<% 
+    var getpageEarnings = function(earningsOnPage, allEarnings){      
+      var allEarningsValues = allEarnings.map(x =>{{'id': x.id, 'descriptor': x.descriptor}}) ?? [];
+      var remainingEarnings = allEarningsValues.removeAll(earningsOnPage);
+      return remainingEarnings ?? [];
+    }
+  %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "grid",
+          "label": "Earnings",
+          "id": "earningsGrid",
+          "rowVariableName": "earnings",
+          "rows": "<% getExtendEarnings.data ?? [] %>",
+          "columns": [
+            {
+              "type": "column",
+              "label": "Earning",
+              "columnId": "earningCol",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "earningSection",
+                "children": [
+                  {
+                    "type": "hidden",
+                    "id": "onLoadEarning",
+                    "value": "<% earnings ?? {:} %>"
+                  },
+                  {
+                    "type": "instanceList",
+                    "enabled": true,
+                    "id": "earnings",
+                    "multiSelect": true,
+                    "values": "<% getEarnings ?? [] %>",
+                    "selectedValuesAndDescriptors": "<% earningGroup.earnings ?? [] %>",
+                    "onChange": "<% 
+                      if(!empty(earnings.value)){
+                        pageVariables.earningsToSelect = getpageEarnings(pageVariables.earningsToSelect, (earnings.getSelectedEntries() ?? []));
+                        earnings.setValues(pageVariables.earningsToSelect);
+                      }
+                    %>"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "pageType": "EDIT"
+  }
+}

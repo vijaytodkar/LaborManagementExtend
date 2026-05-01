@@ -1,0 +1,214 @@
+{
+  "id": "viewRetroActive_AllWorkers",
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "endPoints": [
+    {
+      "name": "getCurrentWorker",
+      "baseUrlType": "Workday-WQL",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker FROM processingWorker'); %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getRetroactiveWorker",
+      "authType": "laborISUV2",
+      "_url": "<%
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker, worker{employeeType, cf_XTNDLBCLRVDepartment as department} as workerRBO ,cf_XTNDARICostingAllocationIntervalsTransactionsToRequestTransactions{startDate, endDate}, cf_XTNDLBCFormatCreatedMoment as createMoment, submittedBy FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (cf_XTNDLineDataOnCostingAllocationTransactionRetroactiveAndUpdated IS NOT EMPTY) and status = \\'Final Approval\\' ') %>",
+        "_url1": "<%
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker, worker{employeeType, cf_XTNDLBCLRVDepartment as department} as workerRBO ,cf_XTNDARICostingAllocationIntervalsTransactionsToRequestTransactions{startDate, endDate}, cf_XTNDLBCFormatCreatedMoment as createMoment, submittedBy FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (cf_XTNDLineDataOnCostingAllocationTransactionRetroactiveAndUpdated IS NOT EMPTY) and retroActiveAdjustmentMade != true and status = \\'Final Approval\\' ');%>",
+         "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, worker, worker{cf_CF_XTND_Employee_Type_EE as employeeType, cf_CC_XTND_Department_EE as department} as workerRBO ,cf_XTNDARICostingAllocationIntervalsTransactionsToRequestTransactions{startDate, endDate}, cf_XTNDLBCFormatCreatedMoment as createMoment, submittedBy FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (cf_XTNDLineDataOnCostingAllocationTransactionRetroactiveAndUpdated IS NOT EMPTY) and retroActiveAdjustmentMade != true and status = \\'Final Approval\\' ');%>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "patchCostingAllocationRequestTransaction",
+        "httpMethod": "PATCH",
+        "baseUrlType": "WORKDAY-APP",
+        "authType": "laborISUV2",
+        "url": "<% '/costingAllocationRequestTransactions?bulk=true' %>",
+        "onSend": "<%
+          var finalArray = [];
+          for(var row : workersGrid.getRows()){ 
+              if(row.selected == true){
+                var assignedListData = json:create(
+                  json:attribute('retroActiveAdjustmentMade',(true)),
+                  json:attribute('retroActiveAdjustmentDate', date:getTodaysDate(date:getDateTimeZone(userTimeZone) ) ),
+                  json:attribute('retroActiveAdjustmentWorker', json:create(json:attribute('id', getCurrentWorker.data[0].worker.id ?? ''))),
+                  json:attribute('id', (!empty row.childrenMap.viewCostingAllocationCol.childrenMap.workdayID.value ? row.childrenMap.viewCostingAllocationCol.childrenMap.workdayID.value : '' ))
+                );
+                finalArray.add(assignedListData);
+              }
+          }
+          var finalPayload = {'data': finalArray};
+         
+          return finalPayload;    
+        %>"
+      }
+    ]
+  },
+  "onLoad": "<%
+    //retroactive transactions on the retroactive transactions. 
+    pageVariables.retroactiveWorkers = getRetroactiveWorker.data ?? [];
+  %>",
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "title": {
+      "type": "title",
+      "label": "Workers With Pending Retroactive Adjustments"
+    },
+    "pageType": "EDIT",
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        
+        {
+          "type": "grid",
+          "id": "workersGrid",
+          "label": "Workers",
+          "rows": "<% pageVariables.retroactiveWorkers ?? [] %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "rowVariableName": "worker",
+          "enabled": true,
+          "selectionEnabled": true,
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "employeeTypeCol",
+              "label": "Employee Type",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "employeeType",
+                "value": "<% worker.workerRBO.employeeType[0].descriptor ?? ''  %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "workerNameCol",
+              "label": "Name",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "workerName",
+                "value": "<% worker.worker.descriptor ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "submittedBy",
+              "label": "Submitted By",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "submittedBy",
+                "value": "<% worker.submittedBy ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "departmentCol",
+              "label": "Department",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "department",
+                "value": "<% worker.workerRBO.department ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "createdmnteCol",
+              "label": "Created Date",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "_formatAsDate": true,
+                "id": "createdMoment",
+                "value": "<% worker.createMoment ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "startDtCol",
+              "label": "Start Date",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "formatAsDate": true,
+                "id": "startDate",
+                "value": "<%  var startDateArray =[];
+                 for(var row: worker.cf_XTNDARICostingAllocationIntervalsTransactionsToRequestTransactions)
+                {     
+                   startDateArray.add(row.startDate);
+                  
+                }
+                return (startDateArray[0] ?? '');
+                 %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "endDtCol",
+              "label": "End Date",
+              "sortableAndFilterable": true,
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "endDate",
+                "formatAsDate": true,
+                "value": "<%  var endDateArray =[];
+                 for(var row: worker.cf_XTNDARICostingAllocationIntervalsTransactionsToRequestTransactions)
+                {     
+                   endDateArray.add(row.endDate);
+                
+                }
+                return ! empty endDateArray.last() ?  endDateArray.last() : (endDateArray.first() ?? '') %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "viewCostingAllocationCol",
+              "label": "View Costing Allocation",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "viewCostingAllocationFieldSet",
+                "children": [
+                  {
+                    "type": "externalLink",
+                    "id": "viewRetroActiveAllocation",
+                    "enabled": false,
+                    "descriptor": "View RetroActive Allocation",
+                    "url": "<% attrstore.TenantURL + tenant + '/d/wday/app/' + site.applicationId  + '/' + site.applicationId + '/ViewRetroactiveAllocation.htmld?workerID=' + (worker.worker.id ?? '') + '&transactionID='+ (worker.id ?? '')   %>"
+                  },
+                  {
+                    "type": "hidden",
+                    "enabled": false,
+                    "id": "workdayID",
+                    "value": "<% worker.id ?? '' %>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "externalLink",
+          "descriptor": "Export Report",
+          "url": "<% attrstore.TenantURL + tenant + '/d/wday/app/' + site.applicationId  + '/' + site.applicationId + '/viewRetroActive_AllWorker_Report.htmld' %>",
+          "_url": "<% attrstore.RetroactiveAdjReport %>"
+        }
+      ]
+    }
+  }
+}

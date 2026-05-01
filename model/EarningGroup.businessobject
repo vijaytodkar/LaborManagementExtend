@@ -1,0 +1,41 @@
+{
+  "id": 7,
+  "name": "EarningGroup",
+  "label": "Earning Group",
+  "defaultSecurityDomains": [
+    "SetUpCostingAllocationAttributes",
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "earningGroups",
+    "label": "Earning Groups"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "earnings",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "Earning"
+    },
+    {
+      "id": 2,
+      "name": "earningGroupName",
+      "type": "TEXT",
+      "label": "Earning Group Name",
+      "useForDisplay": true
+    },
+    {
+      "id": 3,
+      "name": "earningGroupFromAdminPage",
+      "type": "BOOLEAN",
+      "label": "Earning Group From Admin Page"
+    },
+    {
+      "id":4,
+      "name":"earningSortOrder",
+      "label":"Earning Sort Order",
+      "type": "INTEGER"
+    }
+  ]
+}

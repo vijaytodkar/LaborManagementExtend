@@ -1,0 +1,23 @@
+{
+  "id": 3,
+  "name": "SendBackCostingAllocationToPreparer",
+  "label": "XTND Send Back Costing Allocation To Preparer",
+  "description": "Business Process Type for SendBackCostingAllocationToPreparer",
+  "useForOrchestrate": false,
+  "allowsCancel": true,
+  "actionSteps": [
+    {
+      "pageRoute": "/CostingAllocationSendBackToPreparerAction/{eventStepId}",
+      "label": "Send Back Allocation To Preparer",
+      "name": "SendBackAllocationToPreparer",
+      "id": 1
+    }
+  ],
+  "targetBusinessObject": "CostingAllocationTransactionPreparer",
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "details": {
+    "pageRoute": "/CostingAllocationSendBackToPreparerDetails/{eventId}"
+  }
+}

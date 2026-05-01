@@ -1,0 +1,46 @@
+var getDatesArray = function(startDate, endDate, increment, transactionType) {
+
+    var startDateValue = (transactionType == 'prompt')? (startDate ?? '') : date:parse(startDate ?? '');
+    var endDateValue = (transactionType == 'prompt')? (endDate ?? '') : date:parse(endDate ?? '');
+    var increments = increment ?? '';
+
+    var dateInc = startDateValue ?? '';
+    var i = 0;
+    var incrementAmount = 1;
+    var dateArray = [];
+
+    if(increments == 'WEEKLY'){
+        increments = 'DAY';
+            incrementAmount = 7;
+    };
+    if(increments == 'BIWEEKLY'){
+        increments = 'DAY';
+            incrementAmount = 14;
+    }
+    var firstIncrementEndDate = !empty(startDate)? ((transactionType == 'prompt')? startDate : date:parse(startDate)).add(increments, 1): '';
+    if(!empty(startDateValue) && !empty(endDateValue)){
+        do{
+            var map = {:};
+                map.id = 'col' + string:toString(i);
+                map.periodStartDate = dateInc;
+                if(i==0){
+                    map.periodEndDate = firstIncrementEndDate.minusDays(1);
+                }else{
+                    map.periodEndDate = dateInc.add(increments,incrementAmount).minusDays(1);
+                }
+                dateArray.add(map);
+                if(i==0){
+                    dateInc = ((transactionType == 'prompt')? startDate : date:parse(startDate)).add(increments,incrementAmount);
+                }else{
+                    dateInc = dateInc.add(increments,incrementAmount);
+                }
+                i++;
+        }while (dateInc.between(endDateValue,'DAY') >= 0);
+    }
+    return dateArray;
+
+};
+
+{
+    "getDatesArray": getDatesArray
+}

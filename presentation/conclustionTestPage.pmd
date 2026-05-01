@@ -1,0 +1,28 @@
+{
+  "id": "conclustionTestPage",
+  "endPoints": [ ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "text",
+          "id": "hello",
+          "label": "Hello World!",
+          "value": "<% flowVariables.submittedOrchestration %>"
+        },
+        {
+          "type": "text",
+          "id": "Test",
+          "label": "Hello World!",
+          "value": "<% json:asJSON(flowVariables.submitData) %>"
+        }
+      ]
+    }
+  }
+}

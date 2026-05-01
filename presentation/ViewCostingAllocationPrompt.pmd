@@ -1,0 +1,178 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "ViewCostingAllocationPrompt",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerSearch",
+      "authType": "sso",
+      "deferred": true,
+      "exclude": "<% empty instanceListQuery %>",
+      "url": "<%
+        var whereFilter = ' Where fullName CONTAINS \\'' + instanceListQuery + '\\'';
+        return '/data?query=' + string:urlEncode('SELECT worker FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers)' + (whereFilter ?? ''))
+      %>",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT workSpaceLevel4 as department, worker, academicRankForPrimaryAcademicAppointment as rank, academicTenureStatusForCommitteeCandidate as tenureStatus FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + flowVariables.workerID + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorker",
+      "authType": "sso",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT worker FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) LIMIT 10')
+      %>",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT workSpaceLevel4 as department, worker, academicRankForPrimaryAcademicAppointment as rank, academicTenureStatusForCommitteeCandidate as tenureStatus FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + flowVariables.workerID + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "sso",
+      "deferred": true,
+      "_exclude": "<% empty(flowVariables.workerID); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, allPositions as positions FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers)  WHERE workdayID = \\'' + id + '\\'') %>",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT workSpaceLevel4 as department, worker, academicRankForPrimaryAcademicAppointment as rank, academicTenureStatusForCommitteeCandidate as tenureStatus FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + flowVariables.workerID + '\\')') %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "outboundFlowVars",
+        "type": "outboundVariable",
+        "variableScope": "flow",
+        "values": [
+          {
+            "outboundPath": "grid",
+            "value": "<% pageVariables.dynamicGrid %>"
+          },
+          {
+            "outboundPath": "position",
+            "value": "<% pageVariables.workerData.allPositions[0] ?? '' %>"
+          },
+          {
+            "outboundPath": "worker",
+            "value": "<% worker.value[0] ?? '' %>"
+          },
+          {
+            "outboundPath": "periodDates",
+            "value": "<% pageVariables.gridFunction ?? '' %>"
+          },
+          {
+            "outboundPath": "startDate",
+            "value": "<% startDate.value ?? '' %>"
+          },
+          {
+            "outboundPath": "endDate",
+            "value": "<% endDate.value ?? '' %>"
+          },
+          {
+            "outboundPath": "requestType",
+            "value": "<% 'View' %>"
+          }
+        ]
+      }
+    ]
+  },
+  "onSubmit": "<%
+
+               pageVariables.gridFunction = GridScripts.getDatesArray(startDate.value, endDate.value, dateIncrements.value[0], 'prompt');
+             //  pageVariables.gridFunction = GridScripts.getDatesArray(startDate.value, endDate.value, 'MONTH', 'prompt');
+               pageVariables.dynamicGrid = [];
+               var workTagPayload = {
+                   'name': 'WorkTags',
+                   'id': 'workTag',
+                   'type': 'string',
+                   'dataField': 'WorkTags'
+               }
+                   pageVariables.dynamicGrid.add(workTagPayload);
+               for (var numCol : pageVariables.gridFunction){
+                   var colPayload = {
+                       'name': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy'),
+                       'id': numCol.id,
+                       'type': 'string',
+                       'dataField': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy')
+                   };
+                       pageVariables.dynamicGrid.add(colPayload);
+               }
+
+               %>",
+  "include": [
+    "GridScripts.script"
+  ],
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "pageType": "edit",
+    "title": {
+      "type": "title",
+      "label": "View Costing Allocation"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "instanceList",
+          "id": "worker",
+          "label": "Select Worker",
+          "values": "<% getWorker.data.map(x => {x.worker}) ?? [] %>",
+          "multiSelect": false,
+          "required": true,
+          "searchEndPoint": "<% endpoints.getWorkerSearch %>",
+          "searchResultValues": "<% getWorkerSearch.data.map(x => {x.worker}) ?? [] %>",
+          "onChange": "<%
+            if(self.value[0]){
+                pageVariables.workerData = getWorkerData.invoke({'id': self.value[0]}).data ?? [];
+            }else{
+                pageVariables.workerData = [];
+            }
+          %>"
+        },
+        {
+          "type": "date",
+          "id": "startDate",
+          "required": true,
+          "label": "Start Date",
+          "value": "<% date:getTodaysDate(userTimeZone) %>"
+        },
+        {
+          "type": "date",
+          "id": "endDate",
+          "label": "End Date",
+          "value": "<% '' %>"
+        },
+        {
+          "type": "section",
+          "id": "dateIncrementsSection",
+          "horizontal": false,
+          "children": [
+            {
+              "type": "dropdown",
+              "id": "dateIncrements",
+              "label": "Date Increments",
+              "required": true,
+              "instanceList": [
+                {
+                  "id": "DAY",
+                  "descriptor": "Daily"
+                },
+                {
+                  "id": "WEEKLY",
+                  "descriptor": "Weekly"
+                },
+                {
+                  "id": "BIWEEKLY",
+                  "descriptor": "Bi-Weekly"
+                },
+                {
+                  "id": "MONTH",
+                  "descriptor": "Monthly"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

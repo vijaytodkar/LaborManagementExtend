@@ -1,0 +1,1236 @@
+
+var getUpdated = function(row){
+    var rowData = row ?? {:};
+    if((rowData.childrenMap.colUpdated.value ?? '') == 'Yes' ){
+       var updatedBooleanArray = [true];
+    }else{
+        var startDateUpdated = rowData.childrenMap.colStartDate.childrenMap.startDate.updated ?? false;
+        var budgetUnitUpdated = rowData.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.updated ?? false;
+        var costCenterUpdated = rowData.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.updated ?? false;
+        var fundUpdated = rowData.childrenMap.colFundWorktag.childrenMap.fundWorktag.updated ?? false;
+        var activityUpdated = rowData.childrenMap.colActivityWorktag.childrenMap.activityWorktag.updated ?? false;
+        var grantUpdated = rowData.childrenMap.colGrantWorktag.childrenMap.grantWorktag.updated ?? false;
+        var projectUpdated = rowData.childrenMap.colProjectWorktag.childrenMap.projectWorktag.updated ?? false;
+        var remainingIDUpdated = rowData.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.updated ?? false;
+        var indefiniteUpdated = rowData.childrenMap.colIndefinite.updated ?? false;
+        var endDateUpdated = rowData.childrenMap.colEndDate.childrenMap.endDate.updated ?? false;
+        var percentUpdated = rowData.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.updated ?? false;
+        var commentUpdated = rowData.childrenMap.colComment.updated ?? false;
+        var updatedBooleanArray = [startDateUpdated, budgetUnitUpdated, costCenterUpdated, fundUpdated, activityUpdated, remainingIDUpdated, indefiniteUpdated, endDateUpdated, percentUpdated, commentUpdated, projectUpdated, grantUpdated]
+    }
+    return updatedBooleanArray.contains(true);
+}
+
+
+
+var getUpdatedRetroActive = function(row){
+
+    var rowData = row ?? {:};
+    if((rowData.childrenMap.colUpdated.value ?? '') == 'Yes' ){
+        var updatedBooleanArray = [true];
+    }else{
+        var startDateUpdated = rowData.childrenMap.colStartDate.childrenMap.startDate.updated ?? false;
+        var budgetUnitUpdated = rowData.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.updated ?? false;
+        var costCenterUpdated = rowData.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.updated ?? false;
+        var fundUpdated = rowData.childrenMap.colFundWorktag.childrenMap.fundWorktag.updated ?? false;
+        var activityUpdated = rowData.childrenMap.colActivityWorktag.childrenMap.activityWorktag.updated ?? false;
+        var grantUpdated = rowData.childrenMap.colGrantWorktag.childrenMap.grantWorktag.updated ?? false;
+        var projectUpdated = rowData.childrenMap.colProjectWorktag.childrenMap.projectWorktag.updated ?? false;
+        var remainingIDUpdated = rowData.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.updated ?? false;
+        var indefiniteUpdated = rowData.childrenMap.colIndefinite.updated ?? false;
+        var percentUpdated = rowData.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.updated ?? false;
+        var commentUpdated = rowData.childrenMap.colComment.updated ?? false;
+        var updatedBooleanArray = [startDateUpdated, budgetUnitUpdated, costCenterUpdated, fundUpdated, activityUpdated, remainingIDUpdated, indefiniteUpdated, percentUpdated, commentUpdated, projectUpdated, grantUpdated]
+    }
+    return updatedBooleanArray.contains(true);
+}
+
+var getAllocationGridMapped = function(rows, startDate, endDate, currentPayPeriod, earningGroup) {
+    var rowData = rows ?? [];
+    var earningGroupName = earningGroup.descriptor ?? (earningGroup ?? '');
+    var intervalPayload = {};   
+   var dateSorted = list:sort(rowData.map(
+        x => {
+			var grantID = (x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.selectedEntries[0].id ?? '');
+			var endDate = (x.childrenMap.colEndDate.childrenMap.endDate.value ?? '');
+			var salaryOverCapInitial = ((x.childrenMap.colSalaryCap.childrenMap.salaryCapValue.value ?? 0) > 0)? x.childrenMap.colSalaryCap.childrenMap.salaryCapValue.value : 0;
+             var salaryOverCapInitial=0
+			var salaryOverCapNullify = false;
+
+			if (!empty(grantID) && !empty(endDate) && salaryOverCapInitial > 0){
+			var grantData = getGrantDeferred.invoke({'id': grantID }).data[0] ?? {:};
+			if(!empty(grantData.effectiveAwardLine.toDate ?? '')){
+                var awardLineEndDate = grantData.effectiveAwardLine.toDate;
+  			if (awardLineEndDate < endDate.format('yyyy-MM-dd')){
+			salaryOverCapNullify = true;
+			}
+			}
+			}
+
+            return {
+                // add sequence - added isRetroUpdated by Pasha 10/15
+                'startDate': (x.childrenMap.colStartDate.childrenMap.startDate.value ?? ''),
+                'budgetUnitID': (x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.value[0] ?? ''),
+                'workdayLineID': (x.childrenMap.colBudgetUnitWorktag.childrenMap.workdaylineID.value.workdaySOCLineData ?? (x.childrenMap.colBudgetUnitWorktag.childrenMap.workdaylineID.value.id ?? '')),
+                'costCenterID': (x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.value[0] ?? ''),
+                'costCenterWorkForceManager': (x.childrenMap.colCostCenterWorktag.childrenMap.workForceManager.value ?? ''),
+                'fundID': (x.childrenMap.colFundWorktag.childrenMap.fundWorktag.value[0] ?? ''),
+                'activityID': (x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.value[0] ?? ''),
+                'remainingIDs': (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.value ?? []),
+                'centerID': (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Center'})[0].id ?? ''),
+                'grantId' : (x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.selectedEntries[0].id ?? ''),
+                'grantDescriptor': (x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.selectedEntries[0].descriptor ?? ''),
+                'giftID': (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Gift'})[0].id ?? ''),
+                'clinicalAssignment': (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Assignment Allocation'})[0].id ?? ''),
+                'project': (x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.selectedEntries[0].id ?? ''),
+                'indefinite': (x.childrenMap.colIndefinite.value ?? false),
+                'endDate': (x.childrenMap.colEndDate.childrenMap.endDate.value ?? ''),
+                'percent': (number:toBigDecimal(((x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.value /100) ?? 0), 4, 'UNNECESSARY')), 
+                'comment': (x.childrenMap.colComment.value ?? ''),
+                'hasSalaryOverTheCap': ((earningGroupName ?? '') == 'Base Salary') ? (( !salaryOverCapNullify && (x.childrenMap.colSalaryCap.childrenMap.salaryCapValue.value ?? 0) > 0)? true : false) : false,
+                'salaryOvercapAmount': ((earningGroupName ?? '') == 'Base Salary') ? (( !salaryOverCapNullify && (x.childrenMap.colSalaryCap.childrenMap.salaryCapValue.value ?? 0) > 0)? x.childrenMap.colSalaryCap.childrenMap.salaryCapValue.value : 0) : 0,
+                'isUpdated': (getUpdated(x) ?? false),
+                'isRetroUpdated' : (getUpdatedRetroActive(x) ?? false), 
+                'id': (x.childrenMap.colBudgetUnitWorktag.childrenMap.lineID.value ?? ''),
+                'budgetUnitDescriptor' : (x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.selectedEntries[0].descriptor ?? ''),
+                'costCenterDescriptor' : (x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.selectedEntries[0].descriptor ?? ''),
+                'fundDescriptor' : (x.childrenMap.colFundWorktag.childrenMap.fundWorktag.selectedEntries[0].descriptor ?? ''),
+                'activityDescriptor' : (x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.selectedEntries[0].descriptor ?? ''),
+                'centerDescriptor' : (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Center'})[0].descriptor ?? ''),
+                'projectDescriptor' : (x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.selectedEntries[0].descriptor ?? ''),
+                'giftDescriptor' : (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Gift'})[0].descriptor ?? ''),
+                'clinicalAssignmentDescriptor' :  (x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Assignment Allocation'})[0].descriptor ?? '')
+          
+            };
+        }), 'startDate', true) ?? [];
+        var dateSortedIntervals = list:sort(rowData.map(
+        x => {
+            {
+                'startDate': (x.childrenMap.colStartDate.childrenMap.startDate.value ?? ''),
+                'endDate': !empty(x.childrenMap.colEndDate.childrenMap.endDate.value) ?(x.childrenMap.colEndDate.childrenMap.endDate.value).add('DAY', 1) : ''
+            }
+        }), 'startDate', true) ?? [];
+    var allocationDates = []
+    for(var y : dateSortedIntervals){
+        if(!empty(y.startDate)){
+            allocationDates.add(y.startDate ?? '');
+        }
+        if(!empty(y.endDate)){
+            allocationDates.add(y.endDate ?? '');
+        }
+    }
+    allocationDates = list:sort(allocationDates).distinct();
+    var datesDistinct = [date:parseFormattedDateString(currentPayPeriod.toString(),'yyyy-MM-dd')];
+    for(var j : allocationDates){
+        if(!datesDistinct.contains(j)){
+            datesDistinct.add(j)
+        }
+    }
+    datesDistinct= list:sort(datesDistinct);
+    var allocationDateSize = datesDistinct.size();
+    var allocationDateSizeIndex = (allocationDateSize == 1) ? (datesDistinct.size()) : (datesDistinct.size()-1);
+    var intervalData = [];
+    for (var col = 0; col < allocationDateSize; col++){
+        var allocationPercentSum = 0;
+        var intervalEndDate = '';
+        var intervalPayload = {:};
+        var intervalStartDate = datesDistinct[col] ?? '';
+        intervalPayload.addAll({'startDate':intervalStartDate});
+        var futureDated = (intervalStartDate.between(date:parseFormattedDateString(currentPayPeriod.toString(),'yyyy-MM-dd'), 'DAY')) <= 0;
+        intervalPayload.addAll({'isCurrentPayPeriod': futureDated});
+        var lineData = [];
+        var allocationOrder = 0;
+        if(!(col == (allocationDateSize -1))){
+            intervalEndDate = (datesDistinct[(col + 1)]) ?? '';
+            intervalEndDate = intervalEndDate.minusDays(1);
+            intervalPayload.addAll({'endDate':intervalEndDate});
+        }
+        for(var allocationRow : dateSorted){
+            if(!futureDated){
+                // modifed by pasha 11/13
+               // var isUpdated = getUpdatedRetroActive(allocationRow);               
+               //var isUpdated = allocationRow.isRetroUpdated ?? false;
+               var isUpdated = allocationRow.isUpdated ?? false;
+            }else{
+                var isUpdated = allocationRow.isUpdated ?? false;
+                
+            }
+            if(!empty(intervalEndDate)){
+                if(((allocationRow.startDate ?? '').between(intervalStartDate,'DAY') >= 0) && !(allocationRow.indefinite) ?((intervalStartDate).between((allocationRow.endDate ?? ''),'DAY') > 0) : false){
+                    // modified 'isRetroActive': !futureDated by Pasha 11/13
+                    var linePayload = {
+                        // 'fund':{'id': (allocationRow.fundID ?? '')},
+                        'fund':{'id': (allocationRow.fundID ?? ''), 'descriptor': (allocationRow.fundDescriptor ?? '')},
+                      //  'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '')},
+                        'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '') , 'descriptor': (allocationRow.budgetUnitDescriptor ?? '') },
+                        //  'activityType': {'id': (allocationRow.activityID ?? '')},
+                        'activityType': {'id': (allocationRow.activityID ?? ''), 'descriptor': (allocationRow.activityDescriptor ?? '') },
+                        'costCenterWorkForceManager': (allocationRow.costCenterWorkForceManager ?? ''),
+                       // 'costCenter': {'id': (allocationRow.costCenterID ?? '')},
+                         'costCenter': {'id': (allocationRow.costCenterID ?? ''),'descriptor': (allocationRow.costCenterDescriptor ?? '') },
+                       // 'center':{'id': (allocationRow.centerID ?? '')},
+                        'center':{'id': (allocationRow.centerID ?? ''),'descriptor': (allocationRow.centerDescriptor ?? '') },
+                        'grantId': (allocationRow.grantId ?? ''),
+                        'grantDescriptor': (allocationRow.grantDescriptor ?? ''),
+                       // 'gift': {'id': (allocationRow.giftID ?? '')},
+                        'gift': {'id': (allocationRow.giftID ?? ''),'descriptor': (allocationRow.giftDescriptor ?? '') },
+                        //'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? '')},
+                         'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? ''),'descriptor': (allocationRow.clinicalAssignmentDescriptor ?? '') },
+                       // 'project': {'id': (allocationRow.project ?? '')},
+                           'project': {'id': (allocationRow.project ?? ''),'descriptor': (allocationRow.projectDescriptor ?? '') },
+                        'allocationPercent': (allocationRow.percent ?? 0),
+                        'isRetroActive': !futureDated && allocationRow.isRetroUpdated,
+                        'comment': (allocationRow.comment ?? ''),
+                        'updated': (isUpdated ?? false),
+                        'allocationOrder': allocationOrder,
+                        'salaryOverTheCap': (allocationRow.hasSalaryOverTheCap ?? false),
+                        'salaryOverTheCapAmount' : (allocationRow.salaryOvercapAmount ?? 0),
+                        'id': (allocationRow.id ?? ''), 
+                        'workdayLineID': (allocationRow.workdayLineID ?? '')
+                    };
+                    allocationOrder = allocationOrder + 1;
+                    lineData.add(linePayload);
+                    allocationPercentSum = number:toBigDecimal((allocationPercentSum + (allocationRow.percent ?? 0)),4, 'HALF_DOWN');
+                }else if(allocationRow.indefinite && ((allocationRow.startDate ?? '').between(intervalEndDate,'DAY') > 0)){
+                    //modified 'isRetroActive': !futureDated by Pasha on 11/13
+                    var linePayload = {
+                       // 'fund':{'id': (allocationRow.fundID ?? '')},
+                        'fund':{'id': (allocationRow.fundID ?? ''), 'descriptor': (allocationRow.fundDescriptor ?? '')},
+                      //  'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '')},
+                        'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '') , 'descriptor': (allocationRow.budgetUnitDescriptor ?? '') },
+                      //  'activityType': {'id': (allocationRow.activityID ?? '')},
+                        'activityType': {'id': (allocationRow.activityID ?? ''), 'descriptor': (allocationRow.activityDescriptor ?? '') },
+                        'costCenterWorkForceManager': (allocationRow.costCenterWorkForceManager ?? ''),
+                        // 'costCenter': {'id': (allocationRow.costCenterID ?? '')},
+                         'costCenter': {'id': (allocationRow.costCenterID ?? ''),'descriptor': (allocationRow.costCenterDescriptor ?? '') },
+                        // 'center':{'id': (allocationRow.centerID ?? '')},
+                        'center':{'id': (allocationRow.centerID ?? ''),'descriptor': (allocationRow.centerDescriptor ?? '') },
+                        'grantId': (allocationRow.grantId ?? ''),
+                        'grantDescriptor': (allocationRow.grantDescriptor ?? ''),
+                          //'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? '')},
+                         'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? ''),'descriptor': (allocationRow.clinicalAssignmentDescriptor ?? '') },
+                      // 'gift': {'id': (allocationRow.giftID ?? '')},
+                        'gift': {'id': (allocationRow.giftID ?? ''),'descriptor': (allocationRow.giftDescriptor ?? '') },                       
+                     // 'project': {'id': (allocationRow.project ?? '')},
+                           'project': {'id': (allocationRow.project ?? ''),'descriptor': (allocationRow.projectDescriptor ?? '') },
+                        'allocationPercent': (allocationRow.percent ?? 0),
+                         'isRetroActive': !futureDated && allocationRow.isRetroUpdated,                      
+                        'comment': (allocationRow.comment ?? ''),
+                        'updated': (isUpdated ?? false),
+                        'allocationOrder': allocationOrder,
+                        'salaryOverTheCap':  (allocationRow.hasSalaryOverTheCap ?? false),
+                        'salaryOverTheCapAmount' :  (allocationRow.salaryOvercapAmount ?? 0),
+                        'id': (allocationRow.id ?? ''), 
+                        'workdayLineID': (allocationRow.workdayLineID ?? '')
+                    };
+                    allocationOrder = allocationOrder + 1;
+                    lineData.add(linePayload);
+                    allocationPercentSum = number:toBigDecimal((allocationPercentSum + (allocationRow.percent ?? 0)), 4, 'HALF_DOWN');
+                }else if(((allocationRow.startDate ?? '').between(intervalEndDate,'DAY') >= 0) && !(allocationRow.indefinite) ?((allocationRow.endDate ?? '').between((intervalEndDate ?? ''),'DAY') < 0) : false){
+                    // modified  'isRetroActive': !futureDated, by Pasha on 11/13
+                    var linePayload = {
+                          // 'fund':{'id': (allocationRow.fundID ?? '')},
+                        'fund':{'id': (allocationRow.fundID ?? ''), 'descriptor': (allocationRow.fundDescriptor ?? '')},
+                      //  'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '')},
+                        'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '') , 'descriptor': (allocationRow.budgetUnitDescriptor ?? '') },
+                         //  'activityType': {'id': (allocationRow.activityID ?? '')},
+                        'activityType': {'id': (allocationRow.activityID ?? ''), 'descriptor': (allocationRow.activityDescriptor ?? '') },
+                        'costCenterWorkForceManager': (allocationRow.costCenterWorkForceManager ?? ''),
+                        // 'costCenter': {'id': (allocationRow.costCenterID ?? '')},
+                         'costCenter': {'id': (allocationRow.costCenterID ?? ''),'descriptor': (allocationRow.costCenterDescriptor ?? '') },
+                       // 'center':{'id': (allocationRow.centerID ?? '')},
+                        'center':{'id': (allocationRow.centerID ?? ''),'descriptor': (allocationRow.centerDescriptor ?? '') },
+                        'grantId': (allocationRow.grantId ?? ''),
+                        'grantDescriptor': (allocationRow.grantDescriptor ?? ''),
+                      // 'gift': {'id': (allocationRow.giftID ?? '')},
+                        'gift': {'id': (allocationRow.giftID ?? ''),'descriptor': (allocationRow.giftDescriptor ?? '') },                       
+                          //'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? '')},
+                         'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? ''),'descriptor': (allocationRow.clinicalAssignmentDescriptor ?? '') },
+                      // 'project': {'id': (allocationRow.project ?? '')},
+                           'project': {'id': (allocationRow.project ?? ''),'descriptor': (allocationRow.projectDescriptor ?? '') },
+                        'allocationPercent': (allocationRow.percent ?? 0),
+                         'isRetroActive': !futureDated && allocationRow.isRetroUpdated,                          
+                        'comment': (allocationRow.comment ?? ''),
+                        'updated': (isUpdated ?? false),
+                        'allocationOrder': allocationOrder,
+                        'salaryOverTheCap':  (allocationRow.hasSalaryOverTheCap ?? false),
+                        'salaryOverTheCapAmount' :  (allocationRow.salaryOvercapAmount ?? 0),
+                        'id': (allocationRow.id ?? ''), 
+                        'workdayLineID': (allocationRow.workdayLineID ?? '')
+                    };
+                    allocationOrder = allocationOrder + 1;
+                    lineData.add(linePayload);
+                    allocationPercentSum = number:toBigDecimal((allocationPercentSum + (allocationRow.percent ?? 0)), 4, 'HALF_DOWN');
+                }
+            }else if(allocationRow.indefinite ?? false){
+                if(((allocationRow.startDate ?? '').between(intervalStartDate,'DAY') >= 0)){
+                            // modifed 'isRetroActive': !futureDated, by Pasha on 11/13
+                        var linePayload = {
+                         // 'fund':{'id': (allocationRow.fundID ?? '')},
+                        'fund':{'id': (allocationRow.fundID ?? ''), 'descriptor': (allocationRow.fundDescriptor ?? '')},
+                      //  'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '')},
+                        'budgetUnit': {'id': (allocationRow.budgetUnitID ?? '') , 'descriptor': (allocationRow.budgetUnitDescriptor ?? '') },
+                        //  'activityType': {'id': (allocationRow.activityID ?? '')},
+                        'activityType': {'id': (allocationRow.activityID ?? ''), 'descriptor': (allocationRow.activityDescriptor ?? '') },
+                        'costCenterWorkForceManager': (allocationRow.costCenterWorkForceManager ?? ''),
+                        // 'costCenter': {'id': (allocationRow.costCenterID ?? '')},
+                         'costCenter': {'id': (allocationRow.costCenterID ?? ''),'descriptor': (allocationRow.costCenterDescriptor ?? '') },
+                       // 'center':{'id': (allocationRow.centerID ?? '')},
+                        'center':{'id': (allocationRow.centerID ?? ''),'descriptor': (allocationRow.centerDescriptor ?? '') },
+                        'grantId': (allocationRow.grantId ?? ''),
+                        'grantDescriptor': (allocationRow.grantDescriptor ?? ''),
+                      // 'gift': {'id': (allocationRow.giftID ?? '')},
+                        'gift': {'id': (allocationRow.giftID ?? ''),'descriptor': (allocationRow.giftDescriptor ?? '') },                       
+                           //'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? '')},
+                         'clinicalAssignment': {'id': (allocationRow.clinicalAssignment ?? ''),'descriptor': (allocationRow.clinicalAssignmentDescriptor ?? '') },
+                       // 'project': {'id': (allocationRow.project ?? '')},
+                           'project': {'id': (allocationRow.project ?? ''),'descriptor': (allocationRow.projectDescriptor ?? '') },
+                        'allocationPercent': (allocationRow.percent ?? 0),
+                        'isRetroActive': !futureDated && allocationRow.isRetroUpdated,                         
+                        'comment': (allocationRow.comment ?? ''),
+                        'updated': (isUpdated ?? false),
+                        'allocationOrder': allocationOrder,
+                        'salaryOverTheCap': (allocationRow.hasSalaryOverTheCap ?? false),
+                        'salaryOverTheCapAmount' : (allocationRow.salaryOvercapAmount ?? 0),
+                        'id': (allocationRow.id ?? ''), 
+                        'workdayLineID': (allocationRow.workdayLineID ?? '')
+                    };
+                    allocationOrder = allocationOrder + 1;
+                    intervalPayload.addAll({'indefinite': true});
+                    lineData.add(linePayload);
+                    allocationPercentSum = number:toBigDecimal((allocationPercentSum + (allocationRow.percent ?? 0)), 4, 'HALF_DOWN');
+                }
+            }
+        }
+        allocationOrder = 0;
+        if(!empty(intervalEndDate)? true : !empty(lineData)){
+            intervalPayload.addAll({'lineData': (lineData ?? [])});
+            intervalPayload.addAll({'sum': (allocationPercentSum ?? 0)});
+            intervalData.add(intervalPayload);
+        }
+    }
+    return intervalData ?? [];
+}
+
+var mapAllocationData = function(panelData, workerData, startDate, endDate, payPeriod, transactionType, position) {
+   // var panelDataFiltered = panelData.filter(x => {x.children[6].value});
+   // 'submittedBy': (workerMe.descriptor ?? '') added by Pasha 11/06 on sendBack
+   // added payPeriodStartDate on 12/01/by Pasha MCW-14463
+   if(transactionType== 'sendBack'){
+    var allocationRequest = {
+        'worker': {'id': (workerData.worker.id ?? '')},
+        'payPeriodStartDate': (payPeriod ?? ''),
+        'position': {'id': (position ?? '')},
+        'submittedBy': (workerMe.descriptor ?? '')
+    };
+   }else{
+    var allocationRequest = {
+        'worker': {'id': (workerData.worker.id ?? '')},
+        'payPeriodStartDate': (payPeriod ?? ''),
+        'position': {'id': (position ?? '')},
+        'submittedBy': (workerMe.descriptor ?? '')
+    };
+   }
+   var earnings = [];
+   var hasRetroActive = false;
+    for(var x : panelData){
+        var costingAllocationEarningRequest = {:};
+        if(transactionType== 'sendBack'){
+            costingAllocationEarningRequest.earningGroup = (x.children[0].childrenMap.earningGroupList.value ?? []);
+            costingAllocationEarningRequest.earningsGroups = (x.children[0].childrenMap.earningGroupList.value[0] ?? []);
+            costingAllocationEarningRequest.earningsList = (x.children[0].childrenMap.individualEarnings.value ?? []);
+        }else{
+            // children 6 is panelUpdated
+            if(x.children[6].value){
+                costingAllocationEarningRequest.earningGroup = (!empty(x.children[1].childrenMap.individualEarnings.value ?? []))? (x.children[1].childrenMap.individualEarnings.value ?? []) : (x.children[1].childrenMap.earningGroupList.value ?? []);
+                costingAllocationEarningRequest.earningGroupList = (!empty(x.children[1].childrenMap.individualEarnings.selectedEntries ?? []))? (x.children[1].childrenMap.individualEarnings.selectedEntries ?? []) : (x.children[1].childrenMap.earningGroupList.selectedEntries ?? []);
+                costingAllocationEarningRequest.earningGroupName = (x.children[1].childrenMap.earningGroupList.selectedEntries[0].descriptor ?? '');
+            }
+        }
+        
+         if(transactionType== 'sendBack'){
+            if(!empty(x.children[1].childrenMap.earningCostingAllocationRequestID.value)){
+                costingAllocationEarningRequest.earningRequestTransactionID = (x.children[1].childrenMap.earningCostingAllocationRequestID.value);
+            }
+         }else{
+            if(x.children[6].value){
+                if(!empty(x.children[2].childrenMap.earningCostingAllocationRequestID.value)){
+                }
+            }
+         }
+        if(transactionType== 'sendBack'){
+            if(!empty(x.children[1].childrenMap.setPercentage.rows)){
+                var costingAllocationintervals = {:};
+                var costingAllocationLineDetails = {:};
+                var gridMapped = getAllocationGridMapped(x.children[1].childrenMap.setPercentage.rows, startDate, endDate, payPeriod, (x.children[0].childrenMap.earningGroupList1.value ?? ''));
+                if(gridMapped.map(x =>{x.isCurrentPayPeriod}).contains(false)){
+                    hasRetroActive = true;
+                }
+                costingAllocationEarningRequest.addAll({'intervalData': (gridMapped ?? [])});
+            }
+        }else{
+            if(x.children[6].value){
+                if(!empty(x.children[2].childrenMap.setPercentage.rows)){
+                    var costingAllocationintervals = {:};
+                    var costingAllocationLineDetails = {:};
+                    var gridMapped = getAllocationGridMapped(x.children[2].childrenMap.setPercentage.rows, startDate, endDate, payPeriod, (x.children[1].childrenMap.earningGroupList.selectedEntries[0] ?? {:}));
+                    if(gridMapped.map(x =>{x.isCurrentPayPeriod}).contains(false)){
+                        hasRetroActive = true;
+                    }
+                    costingAllocationEarningRequest.addAll({'intervalData': (gridMapped ?? [])});
+                }
+            }
+        }
+        if(transactionType== 'sendBack'){
+            costingAllocationEarningRequest.addAll({'status': 'Pending Approval'});
+          
+            costingAllocationEarningRequest.addAll({'hasRetroactive': hasRetroActive});
+            costingAllocationEarningRequest.addAll({'earningGroupName': (x.children[0].childrenMap.earningGroupList1.value ?? '')});
+            earnings.add((costingAllocationEarningRequest ?? {:}));
+        }else{
+            if(x.children[6].value){
+                costingAllocationEarningRequest.addAll({'status': 'Pending Approval'});
+                costingAllocationEarningRequest.addAll({'hasRetroactive': hasRetroActive});
+          
+                costingAllocationEarningRequest.addAll({'earningGroupName': (x.children[1].childrenMap.earningGroupList.selectedEntries[0].descriptor ?? '')});
+                earnings.add((costingAllocationEarningRequest ?? {:}));
+            }
+        }
+    }
+    allocationRequest.addAll({'earnings': earnings});
+    allocationRequest.addAll({'hasRetroActiveTransaction': (hasRetroActive ?? false)});   
+    return allocationRequest;
+};
+
+
+var mapCostingAllocationOnLoadNew = function(adminEarningGroups, compensationPlan, workdayAllocation, defaultWorktags, payPeriod, oneTimePayment, jobProfile){
+    var earningGroupsfromAdmin = adminEarningGroups ?? [];
+    var workerCompensationPlan = compensationPlan ?? [];
+    var workerCompensationPlanMapped = [];
+    workerCompensationPlan.forEach(compPlan =>{
+        var compPlanSubText = compPlan.compensationPlan.descriptor.removeEnd(' Plan') ?? '';
+        workerCompensationPlanMapped.add(compPlanSubText);
+    });
+    var oneTimePaymentMapped = oneTimePayment.forEach(compPlan =>{
+        var compPlanSubText = compPlan.compensationElement.descriptor.removeEnd(' Plan') ?? '';
+        workerCompensationPlanMapped.add(compPlanSubText);
+    });
+    var earningsOnLoad = [];
+    for(var t: earningGroupsfromAdmin){
+        //if the workers comp plan contains ALL costing allocation then go ahead. 
+        
+        var earningsGroupsEarningsMapped = t.earnings.map(y =>{y.earningDescriptor});
+        var containsOneEarnings = false;
+        
+        for(var earning : earningsGroupsEarningsMapped){
+            if(workerCompensationPlanMapped.contains(earning) ||(workerCompensationPlanMapped.map(k =>{'Regular ' + k+ ' Pay'}).contains(earning)) || (workerCompensationPlanMapped.map(k =>{k+ ' Pay'}).contains(earning)) || ((workerCompensationPlanMapped.contains('Key Leader Incentive') && (earning == 'Incentive Key Leader'))) ){
+                containsOneEarnings = true;
+            }
+        }
+        if((workerCompensationPlanMapped.map(k =>{'Regular ' + k+ ' Pay'}).contains('Regular Hourly Pay')) && t.earningGroupName == 'Overtime Pay'){
+            containsOneEarnings = true;
+        }
+        if(((t.earningGroupName == 'Standardized Patient') && ((jobProfile.descriptor ?? '') == 'Standardized Patient'))){
+            containsOneEarnings = true;
+        }
+        if(containsOneEarnings){
+            var payload = {
+                'selectedValues': {
+                    'descriptor': (t.earningGroupName ?? ''),
+                    'id': (t.id ?? '')
+                },
+                'earningGroupID': (t.id ?? ''), 
+                'type': 'earningGroup', 
+                'earnings': (t.earnings ?? [])
+                
+            };
+            earningsOnLoad.add(payload);
+        }
+    }
+    var panelData = [];
+    for(var y: earningsOnLoad){
+        //get first earning from the group 
+        var earningObjectID= y.earnings.map(t =>{t.earningId ?? ''});
+        var filteredWorkdayAllocationByEarning = workdayAllocation.filter(u =>{(earningObjectID.contains((u.workerEarning.id ?? '')))});
+        if(empty(filteredWorkdayAllocationByEarning) && !empty(earningObjectID[1])){
+            var filteredWorkdayAllocationByEarning = workdayAllocation.filter(u =>{((earningObjectID[1] ?? '') ==(u.workerEarning.id ?? ''))});
+        }
+         
+        if(!empty(filteredWorkdayAllocationByEarning)){
+            //var filteredWorkdayAllocationByDate = filteredWorkdayAllocationByEarning.filter(z =>{((z.startDate ?? '') >= payPeriod) || ((z.endDate ?? '') >= payPeriod) || empty(z.endDate)});
+            //var filteredWorkdayAllocationByDate = filteredWorkdayAllocationByEarning.filter(z =>{((z.startDate ?? '') >= payPeriod) || ((z.endDate ?? '') >= payPeriod) || empty(z.endDate)});
+            var filteredWorkdayAllocationByDate = filteredWorkdayAllocationByEarning.filter(z =>{((z.startDate ?? '') >= string:substring(payPeriod.toString(), 0, 10)) || ((z.endDate ?? '') >= string:substring(payPeriod.toString(), 0, 10)) || empty(z.endDate)});
+
+            if (!empty(filteredWorkdayAllocationByDate)){
+            filteredWorkdayAllocationByDate = list:sort(filteredWorkdayAllocationByDate, 'startDate',false);
+            }
+        }else{
+            var filteredWorkdayAllocationByDate = [];
+        }
+          var startAndEndDistinct = filteredWorkdayAllocationByDate.map(x => {{'startDate' : x.startDate, 'endDate' : (x.endDate ?? '')}}).distinct() ?? [];
+          
+    var distinctWorkdayAllocationByDate = [];
+            for (var d : startAndEndDistinct){
+                var st = d.startDate;
+                var en = d.endDate ?? '';
+                // anEarningAllocationByDate modified by Pasha 11/07 MCW-14453
+                //var anEarningAllocationByDate = filteredWorkdayAllocationByDate.find( x => {x.startDate == st && x.endDate == en}) ?? {:};
+                  var anEarningAllocationByDate = filteredWorkdayAllocationByDate.find( x => {(x.startDate == st) && ((x.endDate ??'') == en)}) ?? {:};
+                if (!empty(anEarningAllocationByDate)){
+                distinctWorkdayAllocationByDate.add(anEarningAllocationByDate);
+                }
+          
+            }
+ 
+        
+
+        var workdayAllocationMapped = [];        
+       // for(var t : ([filteredWorkdayAllocationByDate[0] ?? {:}])){ modified by Pasha 
+      
+       for (var i: distinctWorkdayAllocationByDate){
+             var lineDataPayload = [];
+            for(var t : [i]){
+            var lineData = t.AllocationDetails ?? [];
+            //var lineDataPayload = [];
+            for(var m: lineData){
+                var worktags = [( m.fund.id ??''), (m.costCenter.id ?? ''), ( m.center.id ?? ''), (m.assignmentAllocation.id ?? ''), (m.budgetUnit.id ?? ''), (m.activity.id ?? ''), (m.grant.id ?? ''), (m.project_worktag.id ?? ''), (m.gift.id ?? '')];
+                var isNull = true;
+                if(!empty(list:removeAll(worktags, ['']))){
+                    var lineDataInterval = {
+                        'startDate': (t.startDate ?? ''),
+                        'endDate': ((t.endDate ?? '') =='3000-01-31') ? '':  (t.endDate ?? ''),
+                        'indefinite':((t.endDate ?? '') =='3000-01-31') ? true:  empty(t.endDate),
+                         'fund': ({ 'descriptor': ((m.fund.descriptor ?? '')) ,'id': m.fund.id ?? ''}),
+                      // 'fund': ({'id': m.fund.id ?? ''}),
+                       // 'costCenter': ({'id': m.costCenter.id ?? (defaultWorktags.data[0].costCenter[0].id ?? '')}),
+                        'costCenter': ({ 'descriptor': ((m.costCenter.descriptor ?? '')), 'id': m.costCenter.id ?? (defaultWorktags.data[0].costCenter[0].id ?? '')}),
+                        'center': ({'descriptor': ((m.center.descriptor ?? '')), 'id': m.center.id ?? ''}) ,
+                        'clinicalAssignment': ({'descriptor': ((m.assignmentAllocation.descriptor ?? '')), 'id': m.assignmentAllocation.id ?? ''}),
+                       // 'budgetUnit': ({'id': m.budgetUnit.id ?? ''}),
+                        'budgetUnit': ({'descriptor': ((m.budgetUnit.descriptor ?? '')), 'id': m.budgetUnit.id ?? ''}),
+                       // 'activityType': ({'id': m.activity.id ?? ''}),
+                        'activityType': ({ 'descriptor': ((m.activity.descriptor ?? '')),'id': m.activity.id ?? ''}),
+                        'grantId':( m.grant.id ?? ''),
+                        'grantDescriptor': (m.grant.descriptor ?? ''),
+                        'project': (m.project_worktag ?? {:}),
+                        'gift': ({'descriptor': ((m.gift.descriptor ?? '')),'id': m.gift.id ?? ''}),
+                        'allocationPercent': (m.distributionPercent ?? 0),
+                        'id': (m.id ?? '')
+                        // 'allocationPercent':  number:toBigDecimal(((m.distributionPercent ?? 0)*100), 2, 'HALF_UP')
+                    };
+                    lineDataPayload.add(lineDataInterval);
+                }else{
+                    var lineDataInterval = {
+                        'startDate': (t.startDate ?? ''),
+                        'endDate': ((t.endDate ?? '') =='3000-01-31') ? '':  (t.endDate ?? ''),
+                        'indefinite':((t.endDate ?? '') =='3000-01-31') ? true :  empty(t.endDate),
+                        //'fund':  ({'id': (defaultWorktags.data[0].fund[0].id ?? '')}),
+                        'fund':  ({'descriptor': ((defaultWorktags.data[0].fund[0].descriptor ?? '')),'id': (defaultWorktags.data[0].fund[0].id ?? '')}),
+                        //'costCenter':  ({'id': (defaultWorktags.data[0].costCenter[0].id ?? '')}),
+                         'costCenter':  ({ 'descriptor': ((defaultWorktags.data[0].costCenter[0].descriptor ?? '')),'id': (defaultWorktags.data[0].costCenter[0].id ?? '')}),
+                        'center':  ({'descriptor': ((defaultWorktags.data[0].center.descriptor ?? '')), 'id': (defaultWorktags.data[0].center.id ?? '')}),
+                        'clinicalAssignment': ({'descriptor': ((defaultWorktags.data[0].assignmentAllocation[0].descriptor ?? '')), 'id': (defaultWorktags.data[0].assignmentAllocation[0].id ?? '')}),
+                        //'budgetUnit': ({'id': (defaultWorktags.data[0].budgetUnit[0].id ?? '')}),
+                         'budgetUnit': ({ 'descriptor': ((defaultWorktags.data[0].budgetUnit[0].descriptor ?? '')),'id': (defaultWorktags.data[0].budgetUnit[0].id ?? '')}),
+                       // 'activityType': ({'id': (defaultWorktags.data[0].activity[0].id ?? '')}),
+                        'activityType': ({ 'descriptor': ((defaultWorktags.data[0].activity[0].descriptor ?? '')),'id': (defaultWorktags.data[0].activity[0].id ?? '')}),
+                        'grantId': (defaultWorktags.data[0].grant[0].id ?? ''),
+                        'grantDescriptor': (defaultWorktags.data[0].grant[0].descriptor ?? ''),
+                        'project': ({'id': (defaultWorktags.data[0].project[0] ?? '')}),
+                        'gift': ({'descriptor': ((defaultWorktags.data[0].gift[0].descriptor ?? '')),'id': (defaultWorktags.data[0].gift[0].id ?? '')}),
+                        //'allocationPercent':  number:toBigDecimal(((m.distributionPercent ?? 0)*100), 2, 'HALF_UP')
+                        'allocationPercent':  (m.distributionPercent ?? 0),
+                        'id': (m.id ?? '')
+                    };
+                    lineDataPayload.add(lineDataInterval);
+                }
+            }
+         }
+          var payload = {
+                'isWorkdayAllocation': true,
+                'earningGroup': [{'id': (t[0].allocationLevel.earningID ?? '')}],
+                'worker': {'id': (t[0].allocationLevel.workerID ?? '')},
+                'costingAllocationLineDetails': (lineDataPayload ?? [])
+            };
+            workdayAllocationMapped.add(payload);
+       }
+        var costingAllocationPlanBody = {
+            'earningGroup': (y.earningGroupID ?? ''),
+            'selectedValues': (y.selectedValues ?? {:}),
+            'type': 'earningGroup',
+            'earnings': y.earnings ?? []
+            
+        };        
+        var costingAllocationlineData = [];
+        for(var x : (list:flatten(workdayAllocationMapped.map(x=>{x.costingAllocationLineDetails ?? []}) ?? [])) ){
+            var costingAllocationLinePayload = {
+                'startDate': (x.startDate ?? ''),
+                'endDate': (x.endDate ?? ''),
+                'indefinite': (x.indefinite ?? false),
+                'fund':(x.fund ?? {:}),
+                'budgetUnit': (x.budgetUnit ?? {:}),
+                'activityType': (x.activityType ?? {:}),
+                'costCenter': (x.costCenter ?? {:}),
+                'clinicalAssignment': (x.clinicalAssignment ?? ''),
+                'center': (x.center ?? {:}),
+                'grant': {'id': (x.grantId ?? ''), 'descriptor': (x.grantDescriptor ?? '')},
+                'gift': (x.gift ?? {:}),
+                'project': (x.project ?? {:}),
+                'allocationPercent':  (x.allocationPercent ?? 0.00),
+                'sequence': (x.sequence ?? ''),
+                'id': (x.id ?? ''),
+                'costingOverRideKey': (x.costingOverRideKey ?? '')
+            };
+            costingAllocationlineData.add(costingAllocationLinePayload);
+        }
+        costingAllocationlineData = list:sort(costingAllocationlineData, 'startDate', true);
+        costingAllocationPlanBody.addAll({'lineData': (costingAllocationlineData ?? [])});
+        panelData.add(costingAllocationPlanBody);
+    }
+    return panelData;
+}
+
+var mapCostingAllocationOnLoadNewView = function(adminEarningGroups, workdayAllocation, extendData){
+    var earningGroupsfromAdmin = adminEarningGroups ?? [];
+    var earningsOnLoad = [];
+    var mapExtendData = [];
+    var hasRetroactive = false;
+    for(var k : (extendData ?? [])){
+        var lineDataExtend = [];
+        var earningGroup = earningGroupsfromAdmin.filter(x =>{x.earnings.map(q =>{q.earningId}).contains(k.earningID[0].earningId)});
+        for(var g : (k.intervalData ?? [])){
+            var intervalLineDatamapped = g.costingAllocationLineDetailTransaction.map(j =>{j.id ?? ''}) ?? [];
+            var lineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID)}) ?? [];
+            for(var p: lineData){
+                var lineDataInterval = {
+                    'startDate': (g.startDate ?? ''),
+                    'endDate': (g.endDate ?? ''),
+                    'indefinite': empty(g.endDate),
+                    'fund':({'id': p.fund.id ?? ''}),
+                    'costCenter': ({'descriptor': (p.costCenter.descriptor ?? ''), 'id': (p.costCenter.id ?? '')}),
+                    'project': ({'id': p.project.id ?? ''}),
+                    'gift': ({'id': p.gift.id ?? ''}),
+                    'activityType': ({'id': p.activityType.id ?? ''}),
+                    'budgetUnit': ({'id': p.budgetUnit.id ?? ''}),
+                    'center': ({'id': p.center.id ?? ''}),
+                    'grant': ({'id': p.grantId ?? ''}),
+                    'allocationPercent':  number:toBigDecimal(((p.allocationPercent ?? 0)*100), 2, 'HALF_UP'),
+                    'isRetroActive': (p.isRetroActive ?? false),
+                    'comment': (p.comment ?? ''),
+                    'isUpdated': (p.isUpdated ?? false),
+                    'id': (p.workdayID ?? ''),
+                    'hasSalaryOvertheCap': (p.hasSalaryOvertheCap ?? false)
+                }
+                lineDataExtend.add(lineDataInterval);
+            }
+        }
+        if(k.hasRetroactiveAllocation && !(hasRetroactive)){
+            hasRetroactive = true;
+        }
+        var extendPayload = {
+          'earningSelected':  (k.earningGroupRBO.earnings.map(f =>{f.id ?? ''}) ?? []),
+          'earningGroup': (earningGroup[0].id),
+          'hasRetroactive': (k.hasRetroactiveAllocation ?? false),
+          'lineData': (lineDataExtend ?? [])
+        };
+        mapExtendData.add(extendPayload);
+    }
+    var firstStartDate = list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{r.startDate})}))[0] ?? date:now();
+    var lastEndDate = ((list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{!empty(r.endDate)? r.endDate : null}) ?? []})))) ?? [];
+    lastEndDate = list:nonNull(lastEndDate);
+    var lastIndex = lastEndDate.size()-1;
+    lastEndDate = lastEndDate[lastIndex] ?? date:now();
+    var panelData = [];
+    for(var extendData : mapExtendData){
+
+            var costingAllocationPlanBody = {:};
+            var extendDataFilteredByEarning = extendData;
+            costingAllocationPlanBody.addAll({'extendData': (extendDataFilteredByEarning)});
+            costingAllocationPlanBody.addAll({'hasRetroactive': (hasRetroactive)});
+            panelData.add(costingAllocationPlanBody);
+    }
+    return panelData;
+}
+
+
+
+
+var mapCostingAllocationOnLoadNewViewRetroActive = function(adminEarningGroups, workdayAllocation, extendData){
+    var earningGroupsfromAdmin = adminEarningGroups ?? [];
+    var earningsOnLoad = [];
+    var mapExtendData = [];
+    for(var k : (extendData ?? [])){
+        var lineDataExtend = [];
+        var earningGroup = earningGroupsfromAdmin.filter(x =>{x.earnings.map(q =>{q.earningId}).contains(k.earningID[0].earningId)});
+        for(var g : (k.intervalData ?? [])){
+            var intervalLineDatamapped = g.costingAllocationLineDetailTransaction.map(j =>{j.id ?? ''}) ?? [];
+          //  var lineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID) && (y.isRetroActive)}) ?? [];
+            //1st remove the below line and add var tempRetroOnlyLineData , var tempOtherLineData & var tempLineData = [];
+        //0317  var lineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID) && (y.isRetroActive == true)}) ?? [];
+          
+            //var tempRetroOnlyLineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID) && (y.isRetroActive == true)}) ?? [];
+            //GET NON-RETRO LINE DATA
+          //  var tempOtherLineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID) && ((y.isRetroActive ?? false) == false)}) ?? [];
+         //   var tempLineData = [];
+            
+            //Get Start Date, Get End Date of all retroactive and filter on tempOtherLineData objects that have same start/end date  
+          //  if (!empty(tempRetroOnlyLineData)){
+            //CREATE A LIST OF START AND END DATES FROM THE RETRO LINES
+           // var intervalPeriods = tempRetroOnlyLineData.map(x => {'startDate' : x.startDate, 'endDate' : x.endDate ?? ''}) ?? [];  
+           //  var intervalPeriods = g.costingAllocationLineDetailTransaction.map(x => {'startDate' : x.startDate, 'endDate' : x.endDate ?? ''}) ?? [];  
+        //   var intervalPeriods = [{'startDate': g.startDate,'endDate': g.endDate ?? ''}];
+            //ONLY GRAB DISTINCT PAIRS OF START AND END DATES
+         //   var intervalPeriodsDistinct = intervalPeriods.distinct();
+         //   console.info('intervalPeriodsDistinct Pasha 03/11 '+ intervalPeriodsDistinct);
+         //   for (let i = 0; i < intervalPeriodsDistinct.size(); i++){
+         //   var retroStartDate = intervalPeriodsDistinct[i].startDate;
+         //   console.info('retroStartDate Pasha 03/11 '+ retroStartDate);
+          //  var retroEndDate = intervalPeriodsDistinct[i].endDate;
+         //   console.info('retroEndDate Pasha 03/11 '+ retroEndDate);
+            //tempLineData.addAll(tempOtherLineData.filter(y => {(y.startDate).format('yyyy-MM-dd') == (retroStartDate).format('yyyy-MM-dd') && (y.endDate).format('yyyy-MM-dd') == (retroEndDate).format('yyyy-MM-dd')}));
+         //    tempLineData.addAll(tempOtherLineData.filter(y => {y.startDate == retroStartDate && y.endDate == retroEndDate}));
+         //  }
+        //    tempRetroOnlyLineData.addAll(tempLineData);
+        //    } 
+       //     var lineData = tempRetroOnlyLineData;
+       // lines 668 to 674 is the new code, have to comment 638 line first
+        var tempRetroOnlyLineData = k.lineData.filter(y => {intervalLineDatamapped.contains(y.workdayID) && ((y.isRetroActive ?? false) == true)}) ?? [];
+        var lineData = [];
+            if (!empty(tempRetroOnlyLineData)) {
+                lineData = k.lineData.filter(y => {intervalLineDatamapped.contains(y.workdayID)}) ?? [];
+            }
+            for(var p: lineData){
+                var lineDataInterval = {
+                    'startDate': (g.startDate ?? ''),
+                    'id':(p.workdayID ?? ''),
+                    'endDate': (g.endDate ?? ''),
+                    'indefinite': empty(g.endDate),
+                    'fund': ({'descriptor': (p.fund.descriptor ?? ''), 'id': (p.fund.id ?? '')}),
+                    'costCenter': ({'descriptor': (p.costCenter.descriptor ?? ''), 'id': (p.costCenter.id ?? '')}),
+                    'project': ({'descriptor': (p.project.descriptor ?? ''), 'id': (p.project.id ?? '')}),
+                    'gift': ({'descriptor': (p.gift.descriptor ?? ''), 'id': (p.gift.id ?? '')}),
+                    'activityType': ({'descriptor': (p.activityType.descriptor ?? ''), 'id': (p.activityType.id ?? '')}),
+                    'budgetUnit': ({'descriptor': (p.budgetUnit.descriptor ?? ''), 'id': (p.budgetUnit.id ?? '')}),
+                    'center': ({'descriptor': (p.center.descriptor ?? ''), 'id': (p.center.id ?? '')}),
+                    'grant': ({'descriptor': (p.grantDescriptor ?? ''), 'id': (p.grantId ?? '')}),                  
+                    'allocationPercent':  number:toBigDecimal(((p.allocationPercent ?? 0)*100), 2, 'HALF_UP'),
+                    'clinicalAssignment': ({'descriptor': ((p.clinicalAssignment.descriptor ?? '')), 'id': (p.clinicalAssignment.id ?? '')}),
+                    'isRetroActive': (p.isRetroActive ?? false),
+                    'comment': (p.comment ?? ''),
+                    'isUpdated': (p.isUpdated ?? false),
+                    'hasSalaryOvertheCap': (p.hasSalaryOvertheCap ?? false)
+                }
+              //  if((!empty(p.grantId)))
+              //  { 
+               //         lineDataInterval.add('grant',{'descriptor': (p.grantDescriptor ?? ''), 'id': (p.grantId ?? '')});
+               // }
+               // if((!empty(p.project.id ?? '')))
+               // {
+               //         lineDataInterval.add('project',{'descriptor': (p.project.descriptor ?? ''), 'id': (p.project.id ?? '')});
+               // }
+                lineDataExtend.add(lineDataInterval);
+            }
+        }
+        lineDataExtend = list:sort(lineDataExtend, 'startDate', true);
+        var earningselecteddescriptor = [];
+        for(var edescriptor : k.earningGroupRBO.earnings)
+        {
+             earningselecteddescriptor.add(edescriptor);
+        }
+        var extendPayload = {
+          'earningSelected':  (k.earningGroupRBO.earnings.map(f =>{f.id ?? ''}) ?? []),
+          'earningSelectedDescriptor': (earningselecteddescriptor ?? []),
+          'hasRetroactive': (k.hasRetroactiveAllocation ?? false),
+          'earningGroup': (earningGroup[0].id ?? ''),
+          'earningGroupName': (earningGroup[0].earningGroupName ?? ''),
+          'lineData': (lineDataExtend ?? [])
+        };
+        mapExtendData.add(extendPayload);
+    }
+    mapExtendData = mapExtendData.filter(u =>{u.hasRetroactive});
+    var firstStartDate = list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{r.startDate})}))[0] ?? date:now();
+    var lastEndDate = ((list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{!empty(r.endDate)? r.endDate : null}) ?? []})))) ?? [];
+    lastEndDate = list:nonNull(lastEndDate);
+    var lastIndex = lastEndDate.size()-1;
+    lastEndDate = lastEndDate[lastIndex] ?? date:now();
+    var panelData = [];
+    for(var extendData : mapExtendData){
+            var costingAllocationPlanBody = {:};
+            var extendDataFilteredByEarning = extendData;
+            costingAllocationPlanBody.addAll({'extendData': (extendDataFilteredByEarning)});
+            panelData.add(costingAllocationPlanBody);
+    }
+    return panelData;
+}
+
+
+
+var mapAllocationDataOnLoadApproval = function(extendData, workdayAllocation, earningGroupFromAdminPage, defaultWorktags, payPeriod){
+    var earningsOnLoad = [];
+    var mapExtendData = [];
+    for(var k : (extendData.data ?? [])){
+        var lineDataExtend = [];
+        for(var g : (k.intervalData ?? [])){
+            var intervalLineDatamapped = g.costingAllocationLineDetailTransaction.map(j =>{j.id ?? ''}) ?? [];
+            var lineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID)}) ?? [];
+            for(var p: lineData){
+                var lineDataInterval = {
+                    'startDate': (g.startDate ?? ''),
+                    'endDate': (g.endDate ?? ''),
+                    'indefinite': empty(g.endDate),
+                    'fund':({'descriptor': (p.fund.descriptor ?? ''), 'id': (p.fund.id ?? '')}),
+                    'costCenter': ({'descriptor': (p.costCenter.descriptor ?? ''), 'id': (p.costCenter.id ?? '')}),
+                    'project': ({'descriptor': (p.project.descriptor ?? ''), 'id': (p.project.id ?? '')}),
+                    'gift': ({'descriptor': ((p.gift.descriptor ?? '')), 'id': (p.gift.id ?? '')}),
+                    'activityType': ({'descriptor': (p.activityType.descriptor ?? ''), 'id': p.activityType.descriptor ?? ''}),
+                    'budgetUnit': ({'descriptor': (p.budgetUnit.descriptor ?? ''), 'id': p.budgetUnit.id ?? ''}),
+                    'center': ({'descriptor': ((p.center.descriptor ?? '')), 'id': (p.center.id ?? '')}),
+                    'clinicalAssignment': ({'descriptor': ((p.clinicalAssignment.descriptor ?? '')), 'id': (p.clinicalAssignment.id ?? '')}),
+                    'grant': ({'descriptor': (p.grantDescriptor ?? ''), 'id': (p.grantId ?? '')}),
+                    'allocationPercent':  number:toBigDecimal(((p.allocationPercent ?? 0)), 5, 'UNNECESSARY'),
+                    'isRetroActive': (p.isRetroActive ?? false),
+                    'comment': (p.comment ?? ''),
+                    'isUpdated': (p.isUpdated ?? false),
+                    'id': (p.workdayID ?? ''),
+                    'hasSalaryOvertheCap': (p.hasSalaryOvertheCap ?? false),
+                    'salaryOverTheCapAmount' : (p.salaryOverTheCapAmount ?? 0),
+                    'salaryOverTheCap': (p.salaryOverTheCap.map(l=>{l.id}) ?? []), 
+                    'workdaySOCLineData': (p.workdaySOCLineData ?? '')
+                }
+                lineDataExtend.add(lineDataInterval);
+            }
+        }
+        var extendPayload = {
+          'earningSelected':  (k.earningID.map(f =>{f.earningId ?? ''}) ?? []),
+          'hasRetroactive': (k.hasRetroactiveAllocation ?? false),
+          'earningGroup': (k.earningGroup.descriptor ?? ''),
+          'lineData': (lineDataExtend ?? [])
+        };
+        mapExtendData.add(extendPayload);
+    }
+
+    var firstStartDate = list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{r.startDate})}))[0] ?? date:now();
+    var lastEndDate = ((list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{!empty(r.endDate)? r.endDate : null}) ?? []})))) ?? [];
+
+    lastEndDate = list:nonNull(lastEndDate);
+    var lastIndex = lastEndDate.size()-1;
+    lastEndDate = lastEndDate[lastIndex] ?? date:now();
+    var panelData = [];
+    var workdayAllocationMapped = [];
+    if(!empty(workdayAllocation)){
+        for(var extendData : mapExtendData ?? []){
+            var workdayAllocationFiltered = workdayAllocation.filter(t => {extendData.earningSelected.contains(t.workerEarning.id ?? '')}) ?? [];
+            if(empty(workdayAllocationFiltered) && !empty(earningObjectID[1])){
+                var workdayAllocationFiltered = workdayAllocation.filter(t => {(extendData.earningSelected).contains(t.workerEarning.id ?? '')}) ?? [];
+            }
+            if(!empty(workdayAllocationFiltered)){
+                var filteredWorkdayAllocationByDate = workdayAllocationFiltered.filter(z =>{((z.startDate ?? '') >= date:parseFormattedDateString(payPeriod.toString(),'yyyy-MM-dd')) || ((z.endDate ?? '') >= date:parseFormattedDateString(payPeriod.toString(),'yyyy-MM-dd')) || empty(z.endDate)});
+                var workdayAllocationMapped = [];
+                var lineDataPayload = [];
+            
+                for(var t : [(filteredWorkdayAllocationByDate[0] ?? {:})]){
+                    var lineData = t.AllocationDetails ?? [];
+                    for(var m: lineData){
+                        var worktags = [( m.fund.id ??''), (m.costCenter.id ?? ''), ( m.center.id ?? ''), (m.assignmentAllocation.id ?? ''), (m.budgetUnit.id ?? ''), (m.activity.id ?? ''), (m.grant.id ?? ''), (m.project_worktag.id ?? ''), (m.gift.id ?? '')];
+                        if(!empty(list:removeAll(worktags, ['']))){
+                                var lineDataInterval = {
+                                    'startDate': (t.startDate ?? ''),
+                                    'endDate': (t.endDate ?? ''),
+                                    'indefinite': empty(t.endDate),
+                                    'fund':({'id': m.fund.id ?? ''}),
+                                    'costCenter': ({'id': m.costCenter.id ?? ''}),
+                                    'center': ({'descriptor': ((m.center.descriptor ?? '')), 'id': m.center.id ?? ''}),
+                                    'clinicalAssignment': ({'descriptor': ((m.assignmentAllocation.descriptor ?? '')), 'id': m.assignmentAllocation.id ?? ''}),
+                                    'budgetUnit': ({'id': m.budgetUnit.id ?? ''}),
+                                    'activity': ({'id': m.activity.id ?? ''}),
+                                    'grant': ( m.grant.id ?? ''),
+                                    'project': ({'id': m.project_worktag.id ?? ''}),
+                                    'gift': ({'descriptor': ((m.gift.descriptor ?? '')), 'id': (m.gift.id ?? '')}),
+                                    'allocationPercent':  number:toBigDecimal(((m.distributionPercent ?? 0)), 5, 'UNNECESSARY'),
+                                    'workdaySOCLineData': (m.id ?? '')
+                                    
+                                };
+                                lineDataPayload.add(lineDataInterval);
+                                //}
+                        }else{
+                            var lineDataInterval = {
+                                'startDate': (t.startDate ?? ''),
+                                'endDate': (t.endDate ?? ''),
+                                'indefinite': empty(t.endDate),
+                                'fund':  ({'id': (defaultWorktags.data[0].fund[0].id ?? '')}),
+                                'costCenter':  ({'id': (defaultWorktags.data[0].costCenter[0].id ?? '')}),
+                                'center':  ({'descriptor': ((defaultWorktags.data[0].center.descriptor ?? '')), 'id': (defaultWorktags.data[0].center.id ?? '')}),
+                                'clinicalAssignment': ({'descriptor': ((defaultWorktags.data[0].assignmentAllocation[0].descriptor ?? '')), 'id': (defaultWorktags.data[0].assignmentAllocation[0].id ?? '')}),
+                                'budgetUnit': ({'id': (defaultWorktags.data[0].budgetUnit[0].id ?? '')}),
+                                'activityType': ({'id': (defaultWorktags.data[0].activity[0].id ?? '')}),
+                                'grantId': (defaultWorktags.data[0].grant[0].id ?? ''),
+                                'project': ({'id': (defaultWorktags.data[0].project[0].id ?? '')}),
+                                'gift': ({'descriptor': ((defaultWorktags.data[0].gift[0].descriptor ?? '')), 'id': (defaultWorktags.data[0].gift[0].id ?? '')}),
+                                'allocationPercent':  number:toBigDecimal(((m.distributionPercent ?? 0)), 5, 'UNNECESSARY'),
+                                'workdaySOCLineData': (m.id ?? '')
+                            };
+                            lineDataPayload.add(lineDataInterval);
+                        }
+                    }
+                    var payload = {
+                        'costingAllocationLineDetails': (lineDataPayload ?? [])
+                    };
+                    workdayAllocationMapped.add(payload);
+                }
+                var costingAllocationlineData = [];
+                for(var x : (workdayAllocationMapped[0].costingAllocationLineDetails ?? []) ){
+                    var costingAllocationLinePayload = {
+                        'startDate': (x.startDate ?? ''),
+                        'endDate': (x.endDate ?? ''),
+                        'indefinite': (x.indefinite ?? false),
+                        'fund':(x.fund ?? {:}),
+                        'budgetUnit': (x.budgetUnit ?? {:}),
+                        'activityType': (x.activity ?? {:}),
+                        'costCenter': (x.costCenter ?? {:}),
+                        'center': (x.center ?? {:}),
+                        'grant': {'id': (x.grant ?? '')},
+                        'gift': (x.gift ?? {:}),
+                        'project': (x.project ?? {:}),
+                        'clinicalAssignment': ({'id': (x.clinicalAssignment ?? '')}),
+                        'allocationPercent':  (x.allocationPercent ?? 0.00),
+                        'sequence': (x.sequence ?? ''),
+                        'id': (x.id ?? ''),
+                        'workdaySOCLineData': (m.workdaySOCLineData ?? '')
+                    };
+                    costingAllocationlineData.add(costingAllocationLinePayload);
+                }
+                var costingAllocationPlanBody = {
+                    'earningGroup': (filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? ''),
+                    'selectedValues': (filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? {:}),
+                    'type': 'earningGroup',
+                    'earnings': [filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? ''] ?? [],
+                    'extendData': (extendData?? {:})
+                    
+                };
+                costingAllocationlineData = list:sort(costingAllocationlineData, 'isUpdated', false);
+                costingAllocationlineData = list:sort(costingAllocationlineData, 'startDate', true);
+                costingAllocationPlanBody.addAll({'lineData': (costingAllocationlineData ?? [])});
+                panelData.add(costingAllocationPlanBody);
+
+            }else{
+                var costingAllocationPlanBody = {
+                    'earningGroup': (filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? ''),
+                    'selectedValues': (filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? {:}),
+                    'type': 'earningGroup',
+                    'earnings': [filteredWorkdayAllocationByDate[0].allocationLevel.earningID ?? ''] ?? [],
+                    'extendData': (extendData?? {:})
+                };
+                panelData.add(costingAllocationPlanBody);
+            }
+        }
+       
+    }else{
+        for(var w: mapExtendData ?? []){
+            var costingAllocationPlanBody = {
+                'earningGroup': (w.earningSelected ?? ''),
+                'earningGroup2': (w.earningGroup ?? ''),
+                'selectedValues': (w.earningSelected ?? {:}),
+                'type': 'earningGroup',
+                'earnings': [w.earningSelected ?? ''] ?? []
+            };
+            costingAllocationPlanBody.addAll({'extendData': [(w)]});
+            panelData.add(costingAllocationPlanBody);
+        }
+    }
+    if(!empty(workdayAllocation)){
+        panelData = panelData.filter(q => {!empty(q.extendData)});
+    }
+    panelData = panelData.distinct();
+    return panelData;
+}
+
+
+
+var mapAllocationDataOnLoadSendBack = function(extendData, workdayAllocation, earningGroupFromAdminPage){
+    var earningsOnLoad = [];
+    var mapExtendData = [];
+    
+    for(var k : (extendData.data ?? [])){
+        var lineDataExtend = [];
+        for(var g : (k.intervalData ?? [])){
+            var intervalLineDatamapped = g.costingAllocationLineDetailTransaction.map(j =>{j.id ?? ''}) ?? [];
+            var lineData = k.lineData.filter(y =>{intervalLineDatamapped.contains(y.workdayID)}) ?? [];
+            // modifed by pasha 11/03 number:toBigDecimal 2 to 6
+            for(var p: lineData){
+                var lineDataInterval = {
+                    'startDate': (g.startDate ?? ''),
+                    'endDate': (g.endDate ?? ''),
+                    'indefinite': empty(g.endDate),
+                   // 'fund':({'id': p.fund.id ?? ''}),
+                    'fund':({'descriptor': (p.fund.descriptor ?? ''),'id': p.fund.id ?? ''}),
+                    'costCenter': ({'descriptor': (p.costCenter.descriptor ?? ''), 'id': (p.costCenter.id ?? '')}),
+                   // 'project': ({'id': p.project.id ?? ''}),
+                     'project': ({'descriptor': (p.project.descriptor ?? ''),'id': p.project.id ?? ''}),
+                 //    'gift': ({'id': p.gift.id ?? ''}),
+                       'gift': ({'descriptor': (p.gift.descriptor ?? ''),'id': p.gift.id ?? ''}),
+                    'activityType': ({'descriptor': (p.activityType.descriptor ?? ''),'id': p.activityType.id ?? ''}),
+                   // 'budgetUnit': ({'id': p.budgetUnit.id ?? ''}),
+                    'budgetUnit': ({'descriptor': (p.budgetUnit.descriptor ?? ''),'id': p.budgetUnit.id ?? ''}),
+                   // 'center': ({'id': p.center.id ?? ''}),
+                    'center': ({'descriptor': (p.center.descriptor ?? ''),'id': p.center.id ?? ''}),
+                   // 'clinicalAssignment': ({'id': (p.clinicalAssignment.id ?? '')}),
+                     'clinicalAssignment': ({'descriptor': (p.clinicalAssignment.descriptor ?? ''),'id': (p.clinicalAssignment.id ?? '')}),
+                    // 'grant': ({'id': p.grantId ?? ''}),
+                      'grant': ({'descriptor': (p.grantId.descriptor ?? ''),'id': p.grantId ?? ''}),
+                  //   'allocationPercent':(p.allocationPercent ?? 0.00),
+                  //   'allocationPercent':  number:toBigDecimal(((p.allocationPercent ?? 0)*100), 6, 'HALF_UP'),                      
+                    'allocationPercent':  number:toBigDecimal(((p.allocationPercent ?? 0)), 6, 'HALF_UP'),
+                    'isRetroActive': (p.isRetroActive ?? false),
+                    'comment': (p.comment ?? ''),
+                    'isUpdated': (p.isUpdated ?? false),
+                    'id': (p.workdayID ?? ''),
+                    'workdaySOCLineData': (p.workdaySOCLineData ?? '')
+                }
+                
+                lineDataExtend.add(lineDataInterval);
+            }
+        }
+        var earningGroup = earningGroupFromAdminPage.filter(d =>{(d.earnings.map(tn => {tn.earningId ?? ''}) ?? []).contains(k.earningID[0].earningId ?? '')}) ?? '';
+        var extendPayload = {
+          'earningSelected':  (k.earningID.map(f =>{f.earningId}) ?? []),
+          'hasRetroactive': (k.hasRetroactiveAllocation ?? false),
+          'earningGroup': (k.earningGroup ?? {:}),
+          'earningGroupName': !empty(k.earningGroup) ?(k.earningGroup ?? '') : (k.earningGroupRBO.earnings.map(q =>{q.descriptor}).join('\n') ?? ''),
+          'earningRequestTransactionID': (k.id ?? ''),
+          'lineData': (lineDataExtend ?? [])
+        };
+        mapExtendData.add(extendPayload);
+    }
+
+    var firstStartDate = list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{r.startDate})}))[0] ?? date:now();
+    var lastEndDate = ((list:flatten(mapExtendData.map(i =>{i.lineData.map(r =>{!empty(r.endDate)? r.endDate : null}) ?? []})))) ?? [];
+    lastEndDate = list:nonNull(lastEndDate);
+    var lastIndex = lastEndDate.size()-1;
+    lastEndDate = lastEndDate[lastIndex] ?? date:now();
+    var panelData = [];   
+    var filteredWorkdayAllocationByDate = workdayAllocation.filter(z =>{(((z[1][0].startDate ?? '') >= date:now()) || ((z[1][0].endDate ?? '') >= date:now()) || empty(z[1][0].endDate)) && (!empty(t[0].allocationLevel.earningID))}) ?? [];   
+    if(!empty(filteredWorkdayAllocationByDate)){
+        for(var extendData : mapExtendData ?? []){
+            var workdayAllocationFiltered = filteredWorkdayAllocationByDate.filter(t => {extendData.earningSelected.contains((t[0].allocationLevel.earningID ?? ''))}) ?? [];
+            if(!empty(workdayAllocationFiltered)){
+                var lineData = workdayAllocationFiltered[0].filter(u =>{list:isList(u)});
+                var lineDataPayload = [];
+                var workdayAllocationMapped = [];
+                for(var m: lineData){
+                    for(var q: m){
+                        if((q.startDate < lastEndDate) && (((q.endDate ?? false) > firstStartDate) || (empty(q.endDate)))){
+                            var lineDataInterval = {
+                                'startDate': (q.startDate ?? ''),
+                                'endDate': (q.endDate ?? ''),
+                                'indefinite': empty(q.endDate),
+                                'fund':({'id': q.fundID ?? ''}),
+                                'grant': ({'id': q.grantID ?? ''}),
+                                'costCenter': ({'id': q.costCenterID ?? ''}),
+                                'project': ({'id': q.project ?? ''}),
+                                'gift': ({'id': q.gift ?? ''}),
+                                'clinicalAssignment': ({'id': (q.clinicalAssignment ?? '')}),
+                                'activity': ({'id': q.activity ?? ''}),
+                                'budgetUnit': ({'id': q.budgetUnit ?? ''}),
+                                'center': ({'id': q.center ?? ''}),
+                                'allocationPercent':  number:toBigDecimal(((q.distributionPercent ?? 0)*100), 2, 'HALF_UP')
+                            };
+                            lineDataPayload.add(lineDataInterval);
+                        }
+                    }
+                }
+                var payload = {
+                    'costingAllocationLineDetails': (lineDataPayload ?? [])
+                };
+                workdayAllocationMapped.add(payload);
+                var costingAllocationlineData = [];
+                for(var x : (workdayAllocationMapped[0].costingAllocationLineDetails ?? []) ){
+                    var costingAllocationLinePayload = {
+                        'startDate': (x.startDate ?? ''),
+                        'endDate': (x.endDate ?? ''),
+                        'indefinite': (x.indefinite ?? false),
+                        'fund':(x.fund ?? {:}),
+                        'budgetUnit': (x.budgetUnit ?? {:}),
+                        'activityType': (x.activity ?? {:}),
+                        'costCenter': (x.costCenter ?? {:}),
+                        'center': (x.center ?? {:}),
+                        'grant': {'id': (x.grant ?? '')},
+                        'gift': (x.gift ?? {:}),
+                        'clinicalAssignment': ({'id': (x.clinicalAssignment ?? '')}),
+                        'project': (x.project ?? {:}),
+                        'allocationPercent':  (x.allocationPercent ?? 0.00),
+                        'sequence': (x.sequence ?? ''),
+                        'id': (x.id ?? '')
+                    };
+                    costingAllocationlineData.add(costingAllocationLinePayload);
+                }
+                var costingAllocationPlanBody = {
+                    'earningGroup': (workdayAllocationFiltered[0].allocationLevel.earningID ?? ''),
+                    'selectedValues': (workdayAllocationFiltered[0].allocationLevel.earningID ?? {:}),
+                    'type': 'earningGroup',
+                    'earnings': [workdayAllocationFiltered[0].allocationLevel.earningID ?? ''] ?? [],
+                    'extendData': (extendData?? {:})
+                    
+                };
+                costingAllocationlineData = list:sort(costingAllocationlineData, 'startDate', true);
+                costingAllocationPlanBody.addAll({'lineData': (costingAllocationlineData ?? [])});
+                panelData.add(costingAllocationPlanBody);
+            }
+        }
+    }else{
+        for(var w: mapExtendData ?? []){
+            var costingAllocationPlanBody = {
+                'earningGroup': (w.earningSelected ?? ''),
+                'earningGroup2': (w.earningGroup ?? ''),
+                'selectedValues': (w.earningSelected ?? {:}),
+                'type': 'earningGroup',
+                'earnings': [w.earningSelected ?? ''] ?? []
+            };
+            costingAllocationPlanBody.addAll({'extendData': [(w)]});
+            panelData.add(costingAllocationPlanBody);
+        }
+
+    }
+    if(!empty(workdayAllocation)){
+        panelData = panelData.filter(q => {!empty(q.extendData)});
+
+    }
+    panelData = panelData.distinct();
+    return panelData;
+}
+var getEarningsCostingAllocation = function(earningID, workdayAllocation, grid){
+    var earningIDValue = earningID ?? '';
+    var filteredWorkdayAllocationByEarning = workdayAllocation.filter(u =>{(earningIDValue == ((u.workerEarning.id ?? '')))});
+    
+    if(!empty(filteredWorkdayAllocationByEarning)){
+        var filteredWorkdayAllocationByDate = filteredWorkdayAllocationByEarning.filter(z =>{((z.startDate ?? '') >= date:now()) || ((z.endDate ?? '') >= date:now()) || empty(z.endDate)});
+    }else{
+        var filteredWorkdayAllocationByDate = [];
+    }
+    var workdayAllocationMapped = [];
+    
+    for(var t : (filteredWorkdayAllocationByDate ?? [])){
+        var lineData = t.AllocationDetails ?? [];
+        var lineDataPayload = [];
+        for(var m: lineData){
+            if(((t.startDate ?? '') >= date:now()) || ((t.endDate ?? '') >= date:now()) || empty(t.endDate)){
+                var lineDataInterval = {
+                    'startDate': (t.startDate ?? ''),
+                    'endDate': (t.endDate ?? ''),
+                    'indefinite': empty(t.endDate),
+                    'fund':({'id': m.fund.id ?? ''}),
+                    'costCenter': ({'id': m.costCenter.id ?? ''}),
+                    'center': ({'id': m.center.id ?? ''}),
+                    'clinicalAssignment': ({'id': m.assignmentAllocation.id ?? ''}),
+                    'budgetUnit': ({'id': m.budgetUnit.id ?? ''}),
+                    'activityType': ({'id': m.activity.id ?? ''}),
+                    'grantId': ( m.grant.id ?? ''),
+                    'project': ({'id': m.project_worktag.id ?? ''}),
+                    'gift': ({'id': m.gift.id ?? ''}),
+                    'allocationPercent': (m.distributionPercent ?? 0)
+                };
+                lineDataPayload.add(lineDataInterval);
+            }
+        }
+        var payload = {
+            'isWorkdayAllocation': true,
+            'earningGroup': [{'id': (t[0].allocationLevel.earningID ?? '')}],
+            'worker': {'id': (t[0].allocationLevel.workerID ?? '')},
+            'costingAllocationLineDetails': (lineDataPayload ?? [])
+        };
+        workdayAllocationMapped.add(payload);
+    }
+    var costingAllocationlineData = [];
+    for(var x : (workdayAllocationMapped[0].costingAllocationLineDetails ?? []) ){
+        var costingAllocationLinePayload = {
+            'startDate': (x.startDate ?? ''),
+            'endDate': (x.endDate ?? ''),
+            'indefinite': (x.indefinite ?? false),
+            'fund':(x.fund ?? {:}),
+            'budgetUnit': (x.budgetUnit ?? {:}),
+            'activityType': (x.activityType ?? {:}),
+            'costCenter': (x.costCenter ?? {:}),
+            'center': (x.center ?? {:}),
+            'grant': {'id': (x.grantId ?? ''), 'descriptor': (x.grantDescriptor ?? '')},
+            'clinicalAssignment': ({'id': (x.clinicalAssignment ?? '')}),
+            'gift': (x.gift ?? {:}),
+            'project': (x.project ?? {:}),
+            'allocationPercent':  (x.allocationPercent ?? 0.00),
+            'sequence': (x.sequence ?? ''),
+            'id': (x.id ?? '')
+        };
+        costingAllocationlineData.add(costingAllocationLinePayload);
+    }
+    costingAllocationlineData = list:sort(costingAllocationlineData, 'startDate', true);
+    grid.setRows(costingAllocationlineData);
+}
+
+
+
+var mapSalaryOverTheCap = function(lineData, pageType){
+   // var lineDataValues = list:flatten(lineData ?? []);
+   var lineDataValues = lineData ?? [];
+    var salaryOverTheCapLines = lineDataValues.filter(y =>{(y.hasSalaryOvertheCap ?? false)}) ?? [];
+    var salaryOvertheCapArray = [];
+    for(var t : salaryOverTheCapLines){
+        var salaryOverTheCap = getSalaryOverTheCap.invoke({'id': (t.id ?? '')}).data ?? [];
+        var getWorkdayLineData = getWorkerCostingAllocationsDefferred.invoke({'id': (t.workdaySOCLineData ?? '')}).data[0].costingAllocationDetails.filter(p =>{!empty(p.allSalaryOverTheCapSuballocations) && ((p.id ?? '') == (t.workdaySOCLineData ?? ''))})[0].allSalaryOverTheCapSuballocations.map(lm=>{(lm.id ?? '')}) ?? [];
+        var workdaySOCData = getSalaryOverTheCapWorkday.invoke({'id': (t.workdaySOCLineData ?? '')}).data ?? [];
+        var workdaySOCInLineData = [];
+        for(var p : (workdaySOCData[0].salaryOvertheCap ?? [])){
+            if(getWorkdayLineData.contains(p.id)){
+                workdaySOCInLineData.add(p);
+            }
+        }        
+        workdaySOCInLineData = workdaySOCInLineData.map(l=>{{
+            
+            'costCenter': (l.costCenter ?? {:}),
+            'budgetunit': (l.budgetUnit ?? {:}),
+            'fund': (l.fund ?? {:}),
+            'project': (l.project_worktag ?? {:}),
+            'gift': (l.gift ?? {:}),
+            'activity': (l.activity ?? {:}),
+            'center': (l.center ?? {:}),
+            'assignmentAllocation': (l.assignmentAllocation ?? {:}),
+            'percent': (l.percent ?? 0)
+        }}) ?? [];
+        var socPayload = {
+            'lineData': (salaryOverTheCap ?? []),
+            'workdaySOCData': (workdaySOCInLineData ?? []),
+            'grant': (t.grant.descriptor ?? (t.grantDescriptor ?? '')),
+            'startDate': (t.startDate ?? (t.costingAllocationIntervalTransaction.startDate ?? '')),
+            'endDate': (t.endDate ?? (t.costingAllocationIntervalTransaction.endDate ?? '')),
+            'indefinite': (t.indefinite ?? (t.costingAllocationIntervalTransaction.indefinite ?? false)),
+            'salaryOverTheCapAmount': (t.salaryOverTheCapAmount ?? 0),
+            'id': (t.id ?? ''),
+            'isRetroActive': (t.isRetroActive ?? false)
+        }
+        salaryOvertheCapArray.add(socPayload);
+    }
+    salaryOvertheCapArray = list:sort(salaryOvertheCapArray, 'startDate', true);
+    return salaryOvertheCapArray ?? [];
+}
+
+var getSalaryOverTheCap = function(salaryCapLines, salaryCapOverride){
+
+    var salaryCapLines = salaryCapLines ?? [];
+   
+    if(!empty(salaryCapLines) && !empty(salaryCapOverride)){
+        var salaryCapOverride = salaryCapLines.filter(x => {x.intervalID == salaryCapOverride});
+        salaryCapLines = salaryCapOverride;
+    }
+    return list:sort(salaryCapLines,'dateFrom',false)[0] ?? {:};
+}
+
+{
+    "mapAllocationData": mapAllocationData,
+    "getAllocationGridMapped": getAllocationGridMapped,
+    "mapAllocationDataOnLoadApproval": mapAllocationDataOnLoadApproval,
+    "mapCostingAllocationOnLoadNew": mapCostingAllocationOnLoadNew,
+    "getEarningsCostingAllocation": getEarningsCostingAllocation,
+    "mapCostingAllocationOnLoadNewView": mapCostingAllocationOnLoadNewView,
+    "mapCostingAllocationOnLoadNewViewRetroActive": mapCostingAllocationOnLoadNewViewRetroActive,
+    "mapAllocationDataOnLoadSendBack": mapAllocationDataOnLoadSendBack,
+    "getUpdated": getUpdated,
+    "mapSalaryOverTheCap": mapSalaryOverTheCap,
+    "getSalaryOverTheCap": getSalaryOverTheCap
+}

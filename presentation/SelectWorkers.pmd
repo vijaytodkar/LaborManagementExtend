@@ -1,0 +1,84 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "SelectWorkers",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkers",
+      "authType": "sso",
+      "url": "<%
+        var variables = [(!empty(flowVariables.SupOrg)? ('supervisoryOrganization IN (\\'' + flowVariables.SupOrg + '\\') ')  : null), (!empty(flowVariables.costCenter)? ( 'costCenter IN (\\'' + flowVariables.costCenter + '\\') ') : null)];
+        var whereFilter = !empty(variables)? ('WHERE ' + list:nonNull(variables).join(' AND ')) : '';
+        return '/data?query=' + string:urlEncode('SELECT worker FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers)' + whereFilter ?? '');
+      %>"
+    }
+  ],
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "title": {
+      "type": "title",
+      "label": "Select Worker"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "grid",
+          "id": "workersGrid",
+          "label": "Workers",
+          "rows": "<% getWorkers.data ?? [] %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "rowVariableName": "worker",
+          "enabled": false,
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "workerNameCol",
+              "label": "Name",
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "workerName",
+                "value": "<% worker.worker.descriptor ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "assignCostingButtonCol",
+              "label": "Assign Costing Allocation",
+              "cellTemplate": {
+                "type": "fieldSet",
+                "id": "assignCostingButtonFieldSet",
+                "children": [
+                  {
+                    "type": "externalLink",
+                    "id": "externalLinkCosting",
+                    "descriptor": "Assign Costing Allocation",
+                    "url": "<% attrstore.TenantURL + tenant + '/d/wday/app/' + site.applicationId  + '/' + site.applicationId + '/AssignCostingAllocation_Prompts.htmld?workerID=' + (worker.worker.id ?? '') %>"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "id": "backButton",
+          "action": "LINK",
+          "label": "<< Back",
+          "taskReference": {
+            "taskId": "SearchWorkerByOrganization",
+            "parameterBindings": {
+              "costCenterId": "<% flowVariables.costCenter ?? '' %>",
+              "supOrgId": "<% flowVariables.SupOrg ?? '' %>"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

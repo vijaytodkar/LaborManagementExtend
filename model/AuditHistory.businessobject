@@ -1,0 +1,72 @@
+{
+  "id": 10,
+  "name": "AuditHistory",
+  "label": "Audit History",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "auditHistory",
+    "label": "Audit History"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "enteredBy",
+      "type": "TEXT",
+      "useForDisplay": true,
+      "isPurgeable": false,
+      "isReferenceId": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 2,
+      "name": "enteredOn",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "MILLISECOND"
+    },
+    {
+      "id": 3,
+      "name": "allocationRequestFor",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "target": "CostingAllocationRequestTransaction",
+      "secureByTarget": false,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 4,
+      "name": "action",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 5,
+      "name": "snapshotSummary",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 6,
+      "name": "changeLog",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    }
+  ]
+}

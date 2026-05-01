@@ -1,0 +1,77 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "ViewSearchWorkerByOrganization",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostCenter",
+      "authType": "laborISUV2",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT costCenter FROM costCenters WHERE inactive = false') %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-COMMON",
+      "name": "getSupOrg",
+      "authType": "sso",
+      "url": "<% '/supervisoryOrganizations' %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSupOrgSearch",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT workdayID as id, name as descriptor FROM supervisoryOrganizations WHERE inactive = false AND name CONTAINS(\\'' + instanceListQuery  + '\\')') %>",
+      "exclude": "<% empty(instanceListQuery) %>",
+      "authType": "laborISUV2",
+      "deferred": true
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "outboundFlowVars",
+        "type": "outboundVariable",
+        "variableScope": "flow",
+        "values": [
+          {
+            "outboundPath": "SupOrg",
+            "value": "<% supOrgs.selectedEntries[0] ?? '' %>"
+          },
+          {
+            "outboundPath": "costCenter",
+            "value": "<% costCenter.selectedEntries[0] ?? '' %>"
+          }
+        ]
+      }
+    ]
+  },
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "pageType": "edit",
+    "title": {
+      "type": "title",
+      "label": "View Costing Allocation Search Organization"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "instanceList",
+          "id": "costCenter",
+          "label": "Cost Center",
+          "selectedValues": "<% [] %>",
+          "values": "<% getCostCenter.data.map(x => {x.costCenter ?? ''}) ?? [] %>"
+        },
+        {
+          "type": "instanceList",
+          "id": "supOrgs",
+          "label": "Supervisory Organization",
+          "searchEndPoint": "<% endpoints.getSupOrgSearch %>",
+          "searchResultValues": "<% getSupOrgSearch.data ?? [] %>",
+          "values": "<% getSupOrg.data ?? [] %>",
+          "selectedValues": "<% [] %>"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": 2,
+  "name": "CostingAllocationEarningRequestTransaction",
+  "label": "Costing Allocation Earning Request Transaction",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "costingAllocationEarningRequestTransactions",
+    "label": "Costing Allocation Earning Request Transactions"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "costingAllocationIntervalsTransaction",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "CostingAllocationIntervalTransaction"
+    },
+    {
+      "id": 2,
+      "name": "earningGroup",
+      "type": "SINGLE_INSTANCE",
+      "isPurgeable": false,
+      "target": "EarningGroup"
+    },
+    {
+      "id": 3,
+      "name": "costingAllocationRequestTransaction",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": true,
+      "isPurgeable": false,
+      "target": "CostingAllocationRequestTransaction",
+      "secureByTarget": true,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 4,
+      "name": "hasRetroactiveAllocation",
+      "type": "BOOLEAN",
+      "description": "",
+      "isPurgeable": false,
+      "enableIndex": false
+    }
+  ]
+}

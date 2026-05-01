@@ -1,0 +1,175 @@
+var generateCostingSummaryOnLoad = function(panelData) {
+  var outPutString = '';
+  for (var i : (panelData ?? [])) {
+    var earningGroupName = i.selectedValues.descriptor ?? '';
+    outPutString = outPutString + 'Earning Group : ' + earningGroupName + '\n';
+
+    var rowNumber = 1;
+    for (var j : (i.lineData ?? [])) {
+      var startDate = j.startDate ?? '';
+    //  var endDate = j.endDate ?? (j.indefinite ?? '');
+      var endDate = (!empty(j.endDate)) ? j.endDate : ((j.indefinite ?? false) ? 'Indefinite' : '');
+      var allPercentage = j.allocationPercent ?? '';
+      var budgetDescriptor = j.budgetUnit.descriptor ?? '';
+      var costCenterDescriptor = j.costCenter.descriptor ?? '';
+      var fundDescriptor = j.fund.descriptor ?? '';
+      var activityDescriptor = j.activityType.descriptor ?? '';
+      var grantDescriptor = j.grant.descriptor ?? '';
+      var projectDescriptor = j.project.descriptor ?? '';
+      var clinicalAssignment = j.clinicalAssignment.descriptor ?? '';
+      var giftDescriptor = j.gift.descriptor ?? '';
+      var centerDescriptor = j.center.descriptor ?? '';
+      var lineComment = line.comment ?? '';
+
+      var rowText =
+        'Row - ' + rowNumber +
+        ' , Start Date : ' + startDate +
+        ' , End Date : ' + endDate +
+        ' , Percent : ' + allPercentage +
+        ' , Budget Unit : ' + budgetDescriptor +
+        ' , Cost Center : ' + costCenterDescriptor +
+        ' , Fund : ' + fundDescriptor +
+        ' , Activity : ' + activityDescriptor +
+        ' , Grant : ' + grantDescriptor +
+        ' , Project : ' + projectDescriptor +
+        ' , Clinical Assignment : ' + clinicalAssignment +
+        ' , Gift : ' + giftDescriptor +
+        ' , Center : ' + centerDescriptor +
+        (lineComment ? ' , Line Level Comment : ' + lineComment : '');
+
+      outPutString = outPutString + rowText + '\n';
+
+      rowNumber = rowNumber + 1;
+    }
+  }
+  
+  return outPutString;
+};
+
+var generateCostingSummaryOnSubmit = function(payload) 
+{
+  var outPutString = '';
+   
+  for (var earning : (payload.earnings ?? [])) {
+    var earningGroupName = earning.earningGroupName ?? '';
+    outPutString += 'Earning Group : ' + earningGroupName + '\n';
+  
+    var rowNumber = 1;
+    for (var interval : (earning.intervalData ?? [])) {     
+     var intervalStart = date:format(interval.startDate, 'yyyy-MM-dd') ?? '';
+    // var intervalEnd = interval.endDate ?? '';
+   //  var intEndDateFroamtted =  date:format(interval.endDate, 'yyyy-MM-dd') ?? '';
+   //  var intervalEnd = (!empty(intEndDateFroamtted)) ? intEndDateFroamtted : ((interval.indefinite ?? false) ? 'Indefinite' : '');
+     var intEndDateFormatted = date:format(interval.endDate, 'yyyy-MM-dd');
+
+    var intervalEnd = (intEndDateFormatted != null && intEndDateFormatted != '') ? intEndDateFormatted : ((interval.indefinite == true) ? 'Indefinite' : '');
+      //var intervalEnd = (!empty(string:substring(interval.endDate,0.10))) ? string:substring(interval.endDate,0.10) : ((string:substring(interval.endDate,0.10) ?? false) ? 'Indefinite' : '');
+      
+    //  var rowNumber = 1;
+
+      for (var line : (interval.lineData ?? [])) {      
+        var allPercentage = line.allocationPercent ?? '';
+        var budgetDescriptor = line.budgetUnit.descriptor ?? '';
+        var costCenterDescriptor = line.costCenter.descriptor ?? '';
+        var fundDescriptor = line.fund.descriptor ?? '';
+        var activityDescriptor = line.activityType.descriptor ?? '';
+        var grantDescriptor =  line.grantDescriptor ?? '';
+        var projectDescriptor = line.project.descriptor ?? '';
+        var clinicalAssignment = line.clinicalAssignment.descriptor ?? '';
+        var giftDescriptor = line.gift.descriptor ?? '';
+        var centerDescriptor = line.center.descriptor ?? '';
+        var lineComment = line.comment ?? '';
+
+         var rowText =
+        'Row - ' + rowNumber +
+        ' , Start Date : ' + intervalStart +
+        ' , End Date : ' + intervalEnd +
+        ' , Percent : ' + allPercentage +
+        ' , Budget Unit : ' + budgetDescriptor +
+        ' , Cost Center : ' + costCenterDescriptor +
+        ' , Fund : ' + fundDescriptor +
+        ' , Activity : ' + activityDescriptor +
+        ' , Grant : ' + grantDescriptor +
+        ' , Project : ' + projectDescriptor +
+        ' , Clinical Assignment : ' + clinicalAssignment +
+        ' , Gift : ' + giftDescriptor +
+        ' , Center : ' + centerDescriptor +
+       (lineComment ? ' , Line Level Comment : ' + lineComment : '');
+
+        outPutString += rowText + '\n';
+
+        rowNumber++;
+      }
+    }
+  }
+
+  return outPutString;
+};
+
+var generateCostingSummaryOnLoadSendBack = function(payload) {
+  var outPutString = '';
+
+  for (var panelItem : (payload ?? [])) {
+     var rowNumber = 1;
+    for (var groupItem : (panelItem.extendData ?? [])) {
+      var earningGroupName =
+        groupItem.earningGroupName.descriptor ??
+        groupItem.earningGroup.descriptor ??
+        panelItem.earningGroup2.descriptor ??
+        '';
+
+      outPutString = outPutString + 'Earning Group : ' + earningGroupName + '\n';
+
+    //  var rowNumber = 1;
+
+      for (var lineItem : (groupItem.lineData ?? [])) {
+        var startDate = lineItem.startDate ?? '';
+
+        var endDate =
+          (lineItem.endDate != null && lineItem.endDate != '')
+            ? lineItem.endDate
+            : ((lineItem.indefinite == true) ? 'Indefinite' : '');
+
+        var allPercentage = lineItem.allocationPercent ?? '';
+        var budgetDescriptor = lineItem.budgetUnit.descriptor ?? '';
+        var costCenterDescriptor = lineItem.costCenter.descriptor ?? '';
+        var fundDescriptor = lineItem.fund.descriptor ?? '';
+        var activityDescriptor = lineItem.activityType.descriptor ?? '';
+        var grantDescriptor = lineItem.grant.descriptor ?? '';
+        var projectDescriptor = lineItem.project.descriptor ?? '';
+        var clinicalAssignment = lineItem.clinicalAssignment.descriptor ?? '';
+        var giftDescriptor = lineItem.gift.descriptor ?? '';
+        var centerDescriptor = lineItem.center.descriptor ?? '';
+        var lineComment = lineItem.comment ?? '';
+
+        var rowText =
+          'Row - ' + rowNumber +
+          ' , Start Date : ' + startDate +
+          ' , End Date : ' + endDate +
+          ' , Percent : ' + allPercentage +
+          ' , Budget Unit : ' + budgetDescriptor +
+          ' , Cost Center : ' + costCenterDescriptor +
+          ' , Fund : ' + fundDescriptor +
+          ' , Activity : ' + activityDescriptor +
+          ' , Grant : ' + grantDescriptor +
+          ' , Project : ' + projectDescriptor +
+          ' , Clinical Assignment : ' + clinicalAssignment +
+          ' , Gift : ' + giftDescriptor +
+          ' , Center : ' + centerDescriptor +
+         (lineComment ? ' , Line Level Comment : ' + lineComment : '');
+
+        outPutString = outPutString + rowText + '\n';
+        rowNumber = rowNumber + 1;
+      }
+    }
+  }
+
+  return outPutString;
+};
+
+
+{
+  "generateCostingSummaryOnLoad": generateCostingSummaryOnLoad,
+  "generateCostingSummaryOnSubmit": generateCostingSummaryOnSubmit,
+  "generateCostingSummaryOnLoadSendBack":generateCostingSummaryOnLoadSendBack
+}

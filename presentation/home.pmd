@@ -1,0 +1,30 @@
+{
+  "id": "home",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "body": {
+      "type": "section",
+      "children": [
+        {
+          "type": "richText",
+          "id": "hello",
+          "label": "Hello World!",
+          "value": "Welcome to your <b>Workday Extend</b> App. Deployed by the Workday Extend Plugin for IntelliJ."
+        }
+      ]
+    },
+    "footer": {
+      "type": "footer",
+      "children": [
+        {
+          "type": "richText",
+          "enabled": "false",
+          "value": "Powered By Workday Extend"
+        }
+      ]
+    }
+  }
+}

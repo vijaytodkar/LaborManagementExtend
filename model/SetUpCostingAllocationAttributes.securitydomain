@@ -1,0 +1,6 @@
+{
+  "id": 2,
+  "name": "SetUpCostingAllocationAttributes",
+  "enabledForPageSecurity": true,
+  "enabledForOrchestrationSecurity": false
+}

@@ -1,0 +1,35 @@
+{
+  "id": 9,
+  "name": "CostingAllocationTransactionPreparer",
+  "label": "Costing Allocation Transaction Preparer",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "costingAllocationTransactionPreparers",
+    "label": "Costing Allocation Transaction Preparers"
+  },
+  "fields": [
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": true,
+      "target": "WORKER",
+      "isPurgeable": false,
+      "useForDisplay": true,
+      "type": "SINGLE_INSTANCE",
+      "name": "preparer",
+      "id": 1,
+      "securityDomains": []
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CostingAllocationRequestTransaction",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "costingAllocationRequestTransaction",
+      "id": 2
+    }
+  ]
+}

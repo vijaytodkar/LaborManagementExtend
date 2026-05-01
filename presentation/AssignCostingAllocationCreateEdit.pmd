@@ -1,0 +1,1677 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "AssignCostingAllocationCreateEdit",
+  "endPoints": [
+    {
+      "name": "workerMe",
+      "url": "/workers/me",
+      "exclude": "false",
+      "authType": "sso",
+      "baseUrlType": "WORKDAY-COMMON",
+      "bestEffort": true
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorktags",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "_url": "<%         
+        return '/data?query=' + string:urlEncode('PARAMETERS taggableType = (Taggable_Type_ID= ' + taggableType + ' ) SELECT worktagWithRelatedWorktags, effectivePrimaryReferenceID as refID,  relatedWorktagsForOperationalTransactionType FROM relatedWorktags (taggableTypes = (Taggable_Type_ID= ' + taggableTypes.join(', ') + ' ) ) WHERE worktagWithRelatedWorktags in ( \\''+ worktag + '\\')') 
+      %>",
+      "url": "<%         
+        return '/data?query=' + string:urlEncode('PARAMETERS taggableType = (Taggable_Type_ID= ' + taggableType + ' ) SELECT worktagWithRelatedWorktags, effectivePrimaryReferenceID as refID,  relatedWorktagsForOperationalTransactionType{workdayID as id, cf_CFXTNDWorktagDescriptor as descriptor}  FROM relatedWorktags (taggableTypes = (Taggable_Type_ID= ' + taggableTypes.join(', ') + ' ) ) WHERE worktagWithRelatedWorktags in ( \\''+ worktag + '\\')') 
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getFunds",
+      "authType": "laborISUV2",
+      "url": "<% return  '/data?query=' + string:urlEncode('SELECT fund FROM funds WHERE inactive = false') %>",
+      "_url": "<% return  '/data?query=' + string:urlEncode('SELECT fund FROM funds WHERE inactive = false AND includedInFundHierarchies not in (Fund_Hierarchy_ID=\\'FDL1_Labor_Costing_Validation\\') ' ) %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getFundsWorktagData",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<% 
+        return  '/data?query=' + string:urlEncode('SELECT workdayID as id,referenceID1 as refID, fundName as descriptor FROM funds WHERE inactive = false AND workdayID = \\'' + id + '\\'') %>",
+        "_url": "<% return  '/data?query=' + string:urlEncode('SELECT workdayID as id,referenceID1 as refID, fundName as descriptor FROM funds WHERE inactive = false AND includedInFundHierarchies not in (Fund_Hierarchy_ID=\\'FDL1_Labor_Costing_Validation\\') AND workdayID = \\'' + id + '\\'' ) %>"
+    },
+     {
+      "baseUrlType": "Workday-WQL",
+      "name": "getRestrictedFunds",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<% return  '/data?query=' + string:urlEncode('SELECT workdayID as id,referenceID1 as refID, fundName as descriptor FROM funds WHERE inactive = false AND includedInFundHierarchies not in (Fund_Hierarchy_ID=\\'FDL1_Labor_Costing_Validation\\') AND workdayID = \\'' + id + '\\'' ) %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostCenter",
+      "authType": "laborISUV2",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT costCenter FROM costCenters WHERE inactive = false') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getGrant",
+      "authType": "laborISUV2",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT grant FROM grants WHERE inactive = false') %>"
+    }, 
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getGrantDeferred",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT grant, effectiveAwardLine{toDate, awardLineSalaryCap} as effectiveAwardLine, isGrantAssociatedWithSalaryCap as hasSalaryCap, salaryCapForGrant FROM grants WHERE inactive = false AND grant IN(\\'' + id + '\\')') %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT grant, effectiveAwardLine{toDate, awardLineSalaryCap,awardLineSalaryCapOverride} as effectiveAwardLine, isGrantAssociatedWithSalaryCap as hasSalaryCap, salaryCapForGrant FROM grants WHERE inactive = false AND grant IN(\\'' + id + '\\')') %>",
+      "_comment" : "'updated url MCW #14351'"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getProjectDeferred",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<%  return '/data?query=' + string:urlEncode('SELECT project_worktag, projectEndDate, projectStartDate FROM projects ' + attrstore.ProjectHierarchy + '  project_worktag IN(\\'' + id + '\\') AND  inactive_Current = false ') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getGift",
+      "authType": "laborISUV2",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT gift FROM gifts (dataSourceFilter = giftForCompanyAndRoleAccess) WHERE isActive = true') %>"
+    },
+    {
+      "_baseUrlType": "Workday-WQL",
+      "name": "getProject",
+      "authType": "laborISUV2",
+      "url": "https://api.workday.com/projects/v1/projects"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getProjectSearch",
+      "authType": "laborISUV2",
+      "exclude": "<% empty instanceListQuery %>",
+      "deferred": true,
+      "url": "<%        
+        return '/data?query=' + string:urlEncode('SELECT project_worktag FROM projects ' + attrstore.ProjectHierarchy + '  referenceID1 CONTAINS(\\'' + instanceListQuery + '\\') OR projectName CONTAINS(\\'' + instanceListQuery + '\\') AND  inactive_Current = false  ')
+        
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getPrehireWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(flowVariables.worker) || true %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, allPositions as positions,position, cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod, cf_XTNDLBCEMIWorkerCompensation{compensationPlan, amount,compensationElement,frequency} AS compensationPlansRBO,FTE ,bonusAndOne_TimePayments{compensationElement, amount} as onTimePayment FROM allWorkersForPre_Hires WHERE worker IN (\\'' + flowVariables.worker + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(flowVariables.worker); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, jobProfile, allPositions as positions,position, cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod, cf_XTNDLBCEMIWorkerCompensation{compensationPlan, amount,compensationElement,frequency} AS compensationPlansRBO,FTE, bonusAndOne_TimePayments{compensationElement, amount} as onTimePayment, positionWorkerType as workerType, hireDate FROM allWorkers WHERE worker IN (\\'' + flowVariables.worker + '\\')') %>"
+    },
+    {
+       "baseUrlType": "Workday-WQL",
+       "name": "getWorkerSeparationDate",
+       "authType": "laborISUV2",
+       "exclude": "<% empty(flowVariables.worker); %>",
+       "url": "<% '/data?query=' + string:urlEncode('SELECT worker, terminationDate FROM allActiveAndTerminatedWorkers WHERE worker IN (\\'' + flowVariables.worker + '\\')') %>"
+    },
+   {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSeparatedWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(flowVariables.worker) || empty(getWorkerSeparationDate.data[0].terminationDate); %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, jobProfile, allPositions as positions, position, cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod, cf_XTNDLBCEMIWorkerCompensation{compensationPlan, amount, compensationElement, frequency} AS compensationPlansRBO, FTE, bonusAndOne_TimePayments{compensationElement, amount} as onTimePayment, positionWorkerType as workerType, hireDate FROM allActiveAndTerminatedWorkers(effectiveAsOfDate = \\'' + getWorkerSeparationDate.data[0].terminationDate + '\\') WHERE worker IN (\\'' + flowVariables.worker + '\\')') %>"
+   },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCustomOrganization",
+      "authType": "laborISUV2",
+      "url": "<% var wql = 'SELECT planDimensionAsCustomOrganization, workdayID as id, name, referenceID1,  type1 FROM customOrganizations WHERE (type1 IN (Organization_Type_ID = Activity) OR type1 IN (Organization_Type_ID = Budget_Unit) OR type1 IN (Organization_Type_ID = Center) OR type1 IN (Organization_Type_ID = Assignment_Allocation)) AND inactive = false';
+        return '/data?query=' + string:urlEncode(wql);
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getPendingTransactions",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "exclude": "<% empty(getWorkerData.data[0].worker.id) %>",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT worker, workdayID, status, approver, approver{worker, approved, approvalDate} as approvals FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE (active = false AND (status = \\'Pending Approval\\' OR status CONTAINS(\\'Send Back\\' )) AND worker IN(\\''+ (getWorkerData.data[0].worker.id ?? '') +'\\'))');
+      %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getAllEarnings",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "url": "/GetReferencessSync/launch?referenceID=Earning_Code"
+    },
+    {
+      "baseUrlType": "WORKDAY-APP",
+      "name": "getEarnings",
+      "authType": "laborISUV2",
+      "url": "<% '/earningGroups' %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getDefaultWorkTags",
+      "exclude": "<% empty(flowVariables.position) %>",
+      "authType": "laborISUV2",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT costCenter, company, cf_Location1, fund, grant, program, gift, cf_XTNDLBCBudgetUnitOnPosition1 as budgetUnit,cf_XTNDLBCCenterOnPosition1 as center, cf_XTNDLBCAllocationorgonposition as assignmentAllocation, cf_XTNDLBCActivityOnPosition1 as activity FROM indexedPositionsAndJobs_AllStaffingModels WHERE positionAndJob_AllStaffingModels IN (\\'' + flowVariables.position + '\\')') %>",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT costCenter, company, cf_Location1, fund, grant, program, gift, cf_XTNDLBCBudgetUnitOnPosition1 as budgetUnit,cf_XTNDLBCCenterOnPosition1 as center, cf_XTNDLBCAllocationorgonposition as assignmentAllocation, cf_XTNDLBCActivityOnPosition1 as activity FROM allPositions1(effectiveAsOfDate = \\'' + flowVariables.positionEffectiveDate + '\\') WHERE position_PositionManagement IN (\\'' + flowVariables.position + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkdayDataWQL",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(flowVariables.worker) %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT costingOverride, earning, worker, position, workerEarning, allocationDetail, startDate, endDate, allocationDetail{useCostingWorktagDefaults, costCenter, customOrganization02 as activity, customOrganization01 as budgetUnit, customOrganization04 as assignmentAllocation, customOrganization03 as center, fund, grant, project_worktag, gift, distributionPercent, workdayID as id} as AllocationDetails FROM workerCostingOverride WHERE worker in (\\''+ flowVariables.worker + '\\') AND position in (\\''+ flowVariables.position +'\\')');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getEarningGroups",
+      "deferred": true,
+      "authType": "laborISUV2",
+      "url": "<%  return '/data?query=' + string:urlEncode('SELECT workdayID as id, earnings FROM labormanagement_v3_gnqwhx_earningGroups WHERE ON earnings earningId = \\'' + earningID + '\\' WHERE earnings IS NOT EMPTY AND EarningGroup IN (\\'' + earningGroups  +'\\')');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getEarningGroupFromAdminPage",
+      "authType": "laborISUV2",
+      "url": "<%  return '/data?query=' + string:urlEncode('SELECT workdayID as id, earningSortOrder, earningGroupName, earnings{workdayID as id, earningId, earningDescriptor} as earnings FROM labormanagement_v3_gnqwhx_earningGroups WHERE earningGroupFromAdminPage = true ORDER BY earningSortOrder ASC ');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getActiveCostingAllocationTransaction",
+      "authType": "laborISUV2",
+      "url": "<%  return '/data?query=' + string:urlEncode('SELECT workdayID as id FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE active = true AND worker IN(\\''+ flowVariables.worker +'\\')');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getProjectData",
+      "authType": "laborISUV2",
+      "_exclude": "<% empty id %>",
+      "deferred": true,
+      "url": "<%  return '/data?query=' + string:urlEncode('SELECT project_worktag, cf_assignmentAllocationObject as assignmentAllocation FROM projects ' + attrstore.ProjectHierarchy + '  project_worktag IN(\\'' + id + '\\') AND  inactive_Current = false ');
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostCenterRoles",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<% return '/data?query=' + string:urlEncode('SELECT costCenter, cf_XTNDLBCARICostCenterWorkforceManager as workforceManagerAssigned, cf_XTNDLBCARICostCenterWorkforceManagerInherited as workforceManagerInherited FROM costCenters WHERE costCenter in (\\'' + id + '\\')') 
+        %>"
+    },    
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getSalaryOverCap",
+      "authType": "laborISUV2",
+      "deferred": true,
+      "url": "<%  return '/getSalaryOverTheCap/launch?id=' + salaryCapID;
+        %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postDataTransactions",
+        "httpMethod": "POST",
+        "exclude": "<% cancel.value || pageVariables.hasPendingTransactions || pageVariables.requestType == 'View' %>",
+        "baseUrlType": "WORKDAY-ORCHESTRATION",
+        "authType": "laborISUV2",
+        "url": "/SubmitCostingAllocationTransaction/launch",
+        "onSend": "<%
+          var submitData = self.data ?? [];
+          var counter = 0;
+          return submitData;
+        %>",
+        "values": [
+          {
+            "value": "<% pageVariables.submitData %>",
+            "outboundPath": "submitData"
+          },
+          {
+            "value": "<% postData.costingAllocationRequest ?? '' %>",
+            "outboundPath": "costingAllocationRequest",
+            "exclude": true
+          },
+          {
+            "value": "<% getActiveCostingAllocationTransaction.data ?? [] %>",
+            "outboundPath": "activeCostingAllocationTransactions"
+          },
+          {
+            "value": "<% 'initial' %>",
+            "outboundPath": "transactionType"
+          }
+        ]
+      },
+      {
+        "name": "postApprovers",
+        "httpMethod": "POST",
+        "exclude": "<% cancel.value || pageVariables.hasPendingTransactions || pageVariables.requestType == 'View'  %>",
+        "baseUrlType": "WORKDAY-APP",
+        "url": "/approvers?bulk=true",
+        "authType": "laborISUV2",
+        "onSend": "<%
+          var data = [];
+          for(var approvers : pageVariables.costCenterApprovalWorkers){            
+            var approver = {
+              'worker': {
+                'id': (approvers ?? '')
+              },
+              'costingAllocationRequest':{
+                'id': (postDataTransactions.value ?? '')
+              }
+            };
+            data.add(approver);
+          }
+          return {'data': data};
+        %>"
+      },
+      {
+        "name" : "postPreparer",
+        "httpMethod" : "POST",
+        "exclude": "<% cancel.value || pageVariables.hasPendingTransactions || pageVariables.requestType == 'View' || empty(postDataTransactions.value) %>",
+        "baseUrlType": "WORKDAY-APP",
+         "url": "/costingAllocationTransactionPreparers",
+        "authType": "laborISUV2",
+         "onSend": "<%
+         var payLoad = {
+              'preparer' : {'id': (workerMe.id)},
+              'costingAllocationRequestTransaction' : {'id':  (postDataTransactions.value ?? '') }
+         }
+         return payLoad;
+         %>"
+      },     
+      {
+        "name": "patchCostingAllocationRequestTransaction",
+        "httpMethod": "PATCH",
+        "exclude": "<% cancel.value || pageVariables.hasPendingTransactions || pageVariables.requestType == 'View' %>",
+        "baseUrlType": "WORKDAY-APP",
+        "authType": "laborISUV2",
+        "url": "<% '/costingAllocationRequestTransactions/' + postDataTransactions.value %>",
+        "onSend": "<%
+          var submitData = {
+            'approver': (postApprovers.data.map(y=>{{'id': (y.body.id ?? '')}}) ?? {}),
+            'status': ( !empty(pageVariables.costCenterApprovalWorkers)?  ( (!empty(pageVariables.salaryOvertheCap)) ? 'Hold' : 'Pending Approval') : 'Final Approval'),
+            'active': (!empty(pageVariables.costCenterApprovalWorkers)?  false : true),
+            'costingAllocationTransactionPreparer' : {'id': (postPreparer.id ?? '') }
+          }
+          return submitData;
+        %>"
+      },
+      {
+        "name" : "postAuditHistory",
+        "httpMethod" : "POST",
+        "exclude": "<% cancel.value || pageVariables.hasPendingTransactions || pageVariables.requestType == 'View' || empty(postDataTransactions.value) %>",
+        "baseUrlType": "WORKDAY-APP",
+         "url": "/auditHistory",
+        "authType": "laborISUV2",
+         "onSend": "<%
+         var payLoad = {
+         'enteredBy' : workerMe.descriptor,
+         'enteredOn' : date:getTodaysDate(date:getDateTimeZone(userTimeZone)),
+			  'allocationRequestFor' :  {'id':  (postDataTransactions.value ?? '') },
+			  'action' : 'Allocation Submitted',
+			  'snapshotSummary' : pageVariables.SummaryonLoad ?? 'Not generated',
+			  'changeLog' : pageVariables.SummaryOnsbumit  ?? 'Not generated'			 
+         }
+         return payLoad;
+         %>"
+      },
+      {
+        "name": "submitStep",
+        "baseUrlType": "WORKDAY-BP",
+        "url": "/eventSteps/<% (! empty queryParams.eventStepId ? queryParams.eventStepId : flowVariables.eventStepID ) %>/submit",
+        "exclude": "<% cancel.value || empty flowVariables.eventStepID %>",
+        "httpMethod": "POST",
+        "authType": "sso",
+        "onSend": "<% return self.data; %>",
+        "values": [
+          {
+            "outboundPath": "comment",
+            "value": "Completed the task."
+          }
+        ]
+      },
+      {
+        "name": "sendNotification",
+        "authType": "laborISUV2",
+        "url": "<% '/sendMessage' %>",
+        "httpMethod": "POST",
+        "baseUrlType": "WORKDAY-CONNECT",
+        "exclude": "<% (cancel.value) %>",
+        "onSend": "<% 
+          var notificationBody ={
+  
+            'notificationType': {
+              'id': attrstore.notificationType
+            },
+            'emailDetail': {
+              'name':'Approve Costing Allocation',          
+              'body':  ' <p style=\"font-size:20px;\">A Labor Costing Allocation Approval is required for ' +  (! empty getWorkerData.data[0].worker.descriptor  ? getWorkerData.data[0].worker.descriptor  : ! empty getSeparatedWorkerData.data[0].worker.descriptor ? getSeparatedWorkerData.data[0].worker.descriptor : ! empty getPrehireWorkerData.data[0].worker.descriptor ? getPrehireWorkerData.data[0].worker.descriptor  : '') + '.Please Navigate to the \\'Labor Costing Allocation Dashboard\\' to complete the action.</p>',
+              'subject': 'Approve Costing Allocation'
+            },            
+            'recipients': {
+              'contacts': !empty(pageVariables.costCenterApprovalWorkers.map(t =>{{'id': t}})) ? (pageVariables.costCenterApprovalWorkers.map(t =>{{'id': t}})) : []
+            }
+          };
+          return notificationBody;
+         %>"
+      },
+      {
+        "name": "LaunchBPAllocation",
+        "httpMethod": "POST",
+        "exclude": "<% (!empty(pageVariables.costCenterApprovalWorkers)) || (cancel.value) %>",
+        "baseUrlType": "WORKDAY-APP",
+        "authType": "laborISUV2",
+        "url": "/assignCostingAllocationEvents",
+        "values": [
+          {
+            "value": "<% postDataTransactions.value ?? '' %>",
+            "outboundPath": "businessProcessTarget.id"
+          }
+        ]
+      },
+      {
+        "name": "outboundFlowVars",
+        "type": "outboundVariable",
+        "variableScope": "flow",
+        "values": [
+          {
+            "outboundPath": "salaryCap",
+            "value": "<% pageVariables.salaryOvertheCap ?? [] %>"
+          },
+          {
+            "outboundPath": "enviro",
+            "value": "<% tenant ?? '' %>"
+          },
+          {
+            "outboundPath": "transactionID",
+            "value": "<% postDataTransactions.value ?? ''%>"
+          },
+          {
+            "outboundPath": "worker",
+            "value": "<% flowVariables.worker ?? ''%>"
+          },
+          {
+            "outboundPath": "approvers",
+            "value": "<% (postApprovers.data.map(y=>{(y.body.id ?? '')}) ?? []) %>"
+          },
+          {
+            "outboundPath": "costingAllocationRequest",
+            "value": "<% postDataTransactions.value ?? '' %>"
+          },
+          {
+            "outboundPath": "approvalWorkers",
+            "value": "<% (postApprovers.data.map(y=>{(y.body.worker.id ?? '')}) ?? []) %>"
+          },
+          {
+            "outboundPath": "transactionType",
+            "value": "<% 'New Allocation' %>"
+          },
+          {
+            "outboundPath": "approvers",
+            "value": "<% (postApprovers.data.map(y=>{(y.body.id ?? '')}) ?? []) %>"
+          }
+        ]
+      }
+    ]
+  },
+  "include": [
+    "Validation.script",
+    "Mapping.script",
+    "HelpTexts.script",
+    "AuditHistory.script"
+  ],
+  "onLoad": "<%
+   // pageVariables.hireDate = getWorkerData.data[0].hireDate ?? '';
+    pageVariables.hireDate = getWorkerData.data[0].hireDate ?? getSeparatedWorkerData.data[0].hireDate ?? '';
+   // pageVariables.validationDate = ((pageVariables.hireDate ?? '') >= ((! empty getWorkerData.data[0].currentPayPeriod ? getWorkerData.data[0].currentPayPeriod : ! empty getPrehireWorkerData.data[0].currentPayPeriod ? getPrehireWorkerData.data[0].currentPayPeriod  : date:now()))) ? pageVariables.hireDate : ((! empty getWorkerData.data[0].currentPayPeriod ? getWorkerData.data[0].currentPayPeriod : ! empty getPrehireWorkerData.data[0].currentPayPeriod ? getPrehireWorkerData.data[0].currentPayPeriod  : date:now()));
+   pageVariables.referenceDate =  !empty(getWorkerData.data[0].currentPayPeriod)? getWorkerData.data[0].currentPayPeriod : !empty(getSeparatedWorkerData.data[0].currentPayPeriod) ? getSeparatedWorkerData.data[0].currentPayPeriod  : !empty(getPrehireWorkerData.data[0].currentPayPeriod) ? getPrehireWorkerData.data[0].currentPayPeriod : date:now();
+   pageVariables.validationDate = ((pageVariables.hireDate ?? '') >= pageVariables.referenceDate) ? pageVariables.hireDate : pageVariables.referenceDate;
+    pageVariables.workerType = getWorkerData.data[0].workerType ?? getSeparatedWorkerData.data[0].workerType ?? '';   
+    var oneTimePayments = ! empty getWorkerData.data[0].onTimePayment  ? getWorkerData.data[0].onTimePayment  : ! empty getPrehireWorkerData.data[0].onTimePayment ? getPrehireWorkerData.data[0].onTimePayment : ! empty getSeparatedWorkerData.data[0].onTimePayment ? getSeparatedWorkerData.data[0].onTimePayment : [];
+    var compPlanElements = ! empty getWorkerData.data[0].compensationPlansRBO  ? getWorkerData.data[0].compensationPlansRBO  : ! empty getPrehireWorkerData.data[0].compensationPlansRBO ? getPrehireWorkerData.data[0].compensationPlansRBO : ! empty getSeparatedWorkerData.data[0].compensationPlansRBO ? getSeparatedWorkerData.data[0].compensationPlansRBO  : [];
+    var fte = ! empty getWorkerData.data[0].FTE  ? getWorkerData.data[0].FTE  : ! empty getPrehireWorkerData.data[0].FTE ? getPrehireWorkerData.data[0].FTE  : ! empty getSeparatedWorkerData.data[0].FTE  ? getSeparatedWorkerData.data[0].FTE :'';
+    pageVariables.fte = fte;
+    pageVariables.onLoadData = Mapping.mapCostingAllocationOnLoadNew((getEarningGroupFromAdminPage.data ?? []), (compPlanElements ?? []), (getWorkdayDataWQL.data ?? []), (getDefaultWorkTags), (flowVariables.startDate ?? date:now()), (oneTimePayments ?? []), (getWorkerData.data[0].jobProfile ?? getSeparatedWorkerData.data[0].jobProfile ?? ''));
+    pageVariables.SummaryonLoad = AuditHistory.generateCostingSummaryOnLoad(pageVariables.onLoadData ?? []);
+    pageVariables.onLoadEarnings = pageVariables.onLoadData.map(t =>{(t.earnings ?? [])});
+    pageVariables.onLoadEarnings = list:flatten(pageVariables.onLoadEarnings).map(x =>{{'id': (x.earningId ?? ''),'descriptor': (x.earningDescriptor ?? '')}});    
+    var eligibleEarnings = [];
+    for (var row : list:join((compPlanElements ?? []), (oneTimePayments ?? []))){
+      var comPlanString= row.compensationElement.descriptor ?? '';   
+      var findEarning = getAllEarnings.find(x=>{(x.descriptor.contains(comPlanString) || x.descriptor.contains(comPlanString + ' Pay') || (x.descriptor.contains('Standardized') && ((getWorkerData.data[0].jobProfile.descriptor ?? getSeparatedWorkerData.data[0].jobProfile.descriptor ?? '') == 'Standardized Patient')) || (x.descriptor.contains('Incentive Key Leader') && comPlanString.contains('Key Leader Incentive')))}) ?? '';
+      var findearningcheck = ! empty findEarning.id ? true : false;
+      if(findearningcheck == true){
+        eligibleEarnings.add(findEarning);
+      }
+      pageVariables.eligibleEarnings = eligibleEarnings ?? '';      
+      pageVariables.earningGroupsToSelectFrom = pageVariables.eligibleEarnings ?? [];
+      pageVariables.eligibleEarnings = !empty(pageVariables.eligibleEarnings)? pageVariables.eligibleEarnings.removeAll(pageVariables.onLoadEarnings) : [];
+    }
+    var id = ! empty pageVariables.eligibleEarnings.id ? pageVariables.eligibleEarnings.map(x => {{'id' : x.id}}) : '';
+    pageVariables.eligibleEarnings = pageVariables.eligibleEarnings.map(x =>{{'id': (x.id ?? ''),'descriptor': (x.descriptor ?? '')}}) ?? [];     
+    pageVariables.workersCompensation = ! empty getWorkerData.data[0].compensationPlansRBO  ? getWorkerData.data[0].compensationPlansRBO  : ! empty getPrehireWorkerData.data[0].compensationPlansRBO ? getPrehireWorkerData.data[0].compensationPlansRBO  : ! empty getSeparatedWorkerData.data[0].compensationPlansRBO ? getSeparatedWorkerData.data[0].compensationPlansRBO : [];
+    pageVariables.workersCompensation =list:join((pageVariables.workersCompensation ?? []), (oneTimePayments ?? []));       
+    pageVariables.allWorkTags =[];
+    pageVariables.remainingValues = [];
+    pageVariables.earningsOnPage = [];
+    pageVariables.allWorkTags.addAll(getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Center'}).map(x =>{{'descriptor': ('Center:'+ ((x.referenceID1 ?? '') + '- ' +(x.name ?? ''))), 'id': x.id}}) ?? []);
+    pageVariables.allWorkTags.addAll((getGift.data.map(x =>{{'descriptor': ('Gift:'+ x.gift.descriptor), 'id': x.gift.id}}) ?? []));    
+    pageVariables.assignmentallocations = (getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Assignment Allocation'}).map(x =>{{'descriptor': ('Assignment Allocation:'+ ((x.name ?? ''))), 'id': x.id}}) ?? []);
+    pageVariables.requestType = flowVariables.requestType ?? 'View';
+    pageVariables.hasPendingTransactions = !empty(getPendingTransactions.data);
+    pageVariables.allEarningGroups = getEarnings.data ?? [];
+    var amountList = 0;                            
+    var earningGroupsfromAdmin  = getEarningGroupFromAdminPage.data ?? [];    
+    for(var t: earningGroupsfromAdmin){
+      var earningsGroupsEarningsMapped = t.earnings.map(y =>{y.earningDescriptor}) ?? [];          
+      for(var row : pageVariables.workersCompensation) {
+        var compPlanSubText = row.compensationElement.descriptor ?? '';               
+        if(!empty(earningsGroupsEarningsMapped)){
+          for(var earning : (earningsGroupsEarningsMapped ?? [])){       
+            var list =  (((compPlanSubText ?? '').contains(earning)) || (('Regular ' + compPlanSubText) ?? '').contains(earning));                          
+            if (list == true){    
+              if(row.frequency.descriptor == 'Hourly' ){
+                amountList = (row.amount.value * (pageVariables.fte * 40)) ?? '0' + amountList;                  
+              }     
+              else{
+              amountList = row.amount.value ?? '0' + amountList;               
+              }
+            }
+          }
+        }
+      }
+    }                       
+    pageVariables.amountList = amountList;
+     console.info('Test Pasha 04/22 pageVariables.amountList ' + json:asJSON(pageVariables.amountList)); 
+  %>",
+  "onSubmit": "<% 
+        event.ignoreWarnings();    
+       // console.info('Cancel_value ' + cancel.value + ' !cancel_value ' + !cancel.value + '!cancel_value1' + (!cancel.value) + 'last ' + (!empty(cancel.value)) );    
+    //if(!cancel.value ?? false){  // commented by Pasha 01/13 
+       if((cancel.value) != true){           
+      var newmapAllocationData = Mapping.mapAllocationData(loopWorkerAllocation.getChildren(), ! empty(getWorkerData.data[0]) ? getWorkerData.data[0]  : ! empty(getSeparatedWorkerData.data[0]) ? getSeparatedWorkerData.data[0] : ! empty(getPrehireWorkerData.data[0])? getPrehireWorkerData.data[0] : {:}, (flowVariables.startDate ?? ''), (flowVariables.endDate ?? ''), pageVariables.validationDate, 'createAllocation', (flowVariables.position ?? ''));
+      pageVariables.submitData = newmapAllocationData;
+          pageVariables.salaryOvertheCap =[];         
+          // IMPORTANT: SOC logic bypassed intentionally & To re-enable Salary Over Cap UNCOMMENT below three lines         
+     // pageVariables.salaryOvertheCap = pageVariables.submitData.earnings.filter(x =>{x.earningGroupName == 'Base Salary'});
+     // pageVariables.salaryOvertheCap = pageVariables.salaryOvertheCap[0].intervalData ?? [];
+     // pageVariables.salaryOvertheCap = pageVariables.salaryOvertheCap.filter(y=> {y.lineData.map(q=>{q.salaryOverTheCap ?? false}).contains(true)}) ?? []; 
+      for(var y : (loopWorkerAllocation.getChildren()?? [])){
+        var gridRows = y.children[2].childrenMap.setPercentage.rows ?? [];          
+       var errorPayload = Validation.allocationValidation(newmapAllocationData, (y.children[1].childrenMap.individualEarnings.value ?? []), (flowVariables.startDate ?? ''), (flowVariables.endDate ?? ''), 'initialSubmit', (flowVariables.position ?? '')) ?? [];
+        Validation.setGridError(gridRows, errorPayload, y.children[8], submit.value);
+      }
+      // get all approvers on cost center and submit to Object
+      pageVariables.costCenters = [];
+      for(var t: (pageVariables.submitData.earnings ?? [])){
+        var intervalData = t.intervalData ?? [];
+        for(var q : (intervalData ?? [])){
+          var costCenterLineDataFiltered = q.lineData.filter(z =>{z.updated == true}) ?? [];
+          var costCenterLineMapped = costCenterLineDataFiltered.map(r =>{r.costCenter.id ?? ''});
+          pageVariables.costCenters.add(costCenterLineMapped);
+        }
+      }
+      pageVariables.costCenters = list:flatten(pageVariables.costCenters);
+      pageVariables.costCenters = pageVariables.costCenters.distinct();
+      pageVariables.costCenterApprovalWorkers = [];
+      pageVariables.costCenterManagers = [];
+      for(var costCenters : pageVariables.costCenters){
+        var costCenterInvoked = getCostCenterRoles.invoke({'id': costCenters});         
+    //    if(!((costCenterInvoked.data[0].workforceManagerAssigned.map(t =>{t.id}) ?? []).contains(workerMe.id) || (costCenterInvoked.data[0].workforceManagerInherited.map(t =>{t.id}) ?? []).contains(workerMe.id))){
+          if(!empty(costCenterInvoked.data[0].workforceManagerAssigned.map(t =>{t.id}))){
+            pageVariables.costCenterApprovalWorkers.addAll(costCenterInvoked.data[0].workforceManagerAssigned.map(t =>{t.id}));
+                pageVariables.costCenterManagers.addAll(costCenterInvoked.data[0].workforceManagerAssigned.map(t =>{t.descriptor}));
+          }else if(!empty(costCenterInvoked.data[0].workforceManagerInherited.map(t =>{t.id}))){
+            pageVariables.costCenterApprovalWorkers.addAll(costCenterInvoked.data[0].workforceManagerInherited.map(t =>{t.id}));
+             pageVariables.costCenterManagers.addAll(costCenterInvoked.data[0].workforceManagerInherited.map(t =>{t.descriptor}));
+          }
+     //   }
+      }
+      pageVariables.costCenterApprovalWorkers = pageVariables.costCenterApprovalWorkers.distinct();    
+      pageVariables.costCenterManagers = pageVariables.costCenterManagers.distinct();      
+      var approverText = '\\n **** Approvers **** \\n';
+      for (var a : (pageVariables.costCenterManagers ?? [])) {
+          approverText = approverText + (a ?? '') + '\\n';
+      }
+      pageVariables.SummaryOnsbumit = AuditHistory.generateCostingSummaryOnSubmit(pageVariables.submitData ?? {});
+      pageVariables.SummaryOnsbumit = pageVariables.SummaryOnsbumit + approverText;
+    }
+    else{        
+        for(var y : (loopWorkerAllocation.getChildren()?? [])){
+          var gridRows = y.children[2].childrenMap.setPercentage.rows ?? [];          
+           for  (var x : gridRows){
+            let fundWorktag = x.childrenMap.colFundWorktag.childrenMap.fundWorktag ?? '';
+            if (!empty(fundWorktag)){
+              fundWorktag.clearError();
+            }
+            let startDate = x.childrenMap.colStartDate.childrenMap.startDate ?? '';
+            if (!empty(startDate)){
+              startDate.clearError();
+            }
+            let endDate = x.childrenMap.colEndDate.childrenMap.endDate ?? '';
+            if (!empty(endDate)){
+              endDate.clearError();
+            }           
+            let indefinite = x.childrenMap.colIndefinite ?? '';           
+            if (!empty(indefinite)){           
+              indefinite.clearError();
+            }
+			let percentCol = x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount ?? '';
+			if(!empty(percentCol)){
+			percentCol.clearError();
+           }
+           }
+    } 
+    }    
+  %>",
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "pageType": "edit",
+    "title": {
+      "type": "title",
+      "label": "Assign Costing Allocation"
+    },
+    "standardEditButtonsHidden": true,
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "section",
+          "visible": "<% !pageVariables.hasPendingTransactions %>",
+          "id": "allWidgetsToEditSection",
+          "children": [
+            {
+              "type": "section",
+              "id": "allocationOverallDetail",
+              "horizontal": true,
+              "children": [
+                {
+                  "type": "section",
+                  "id": "workerPositionData",
+                  "horizontal": false,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "worker",
+                      "label": "Worker",
+                      "enabled": false,
+                      "value": "<%  ! empty getWorkerData.data[0].worker.descriptor  ? getWorkerData.data[0].worker.descriptor  : ! empty getSeparatedWorkerData.data[0].worker.descriptor ? getSeparatedWorkerData.data[0].worker.descriptor : ! empty getPrehireWorkerData.data[0].worker.descriptor ? getPrehireWorkerData.data[0].worker.descriptor  : '';%>"
+                    },
+                    {
+                      "type": "text",
+                      "id": "position",
+                      "label": "Position",
+                      "enabled": false,
+                      "value": "<% (flowVariables.positionName ?? '')%>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "id": "allocationRequestData",
+                  "horizontal": false,
+                  "children": [
+                    {
+                      "type": "instanceList",
+                      "id": "defaultWT",
+                      "label": "Default Worktags",
+                      "values": "<% [] %>",
+                      "enabled": false,
+                      "selectedValuesAndDescriptors": "<%
+                        var endpoint = getDefaultWorkTags.data[0] ?? {:};
+                        var budgetUnit = endpoint.budgetUnit[0] ?? {:};
+                        var costCenter = endpoint.costCenter[0] ?? {:};
+                        var company = endpoint.company ?? {:};
+                        var fund = endpoint.fund[0] ?? {:};
+                        var grant = endpoint.grant[0] ?? {:};
+                        var gift = endpoint.gift[0] ?? {:};
+                        var center = endpoint.center[0] ?? {:};
+                        var clinicalAssignment = endpoint.assignmentAllocation[0] ?? {:};
+                        var activity = endpoint.activity[0] ?? {:};
+                        return list:nonNull(list:toListIncludeNull( budgetUnit, costCenter, company, fund, activity,  grant, gift, center, clinicalAssignment));
+                      %>",
+                      "multiSelect": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "fieldSet",
+              "id": "demoHelpText",
+              "title": "Help Text",
+              "collapsible": true,
+              "initializeCollapsed": true,
+              "children": [
+                {
+                  "type": "richText",
+                  "id": "demoText",
+                  "enabled": false,
+                  "value": "<% HelpTexts.helpTextsByType('sampleHelpText'); %>"
+                }
+              ]
+            },
+            {
+              "type": "panelList",
+              "id": "loopWorkerAllocation",
+              "label": "Allocations",
+              "doNotRemove": true,
+              "doNotAdd": "<% 
+                return empty(pageVariables.eligibleEarnings) %>",
+              "indexVariableName": "indexPanel",
+              "onPanelAdd": "<%
+                pageVariables.eligibleEarnings = Validation.setPanelValues(loopWorkerAllocation, pageVariables.earningGroupsToSelectFrom ?? []);
+              %>",
+              "panels": "<%                                    
+                     pageVariables.onLoadData ?? []
+                     %>",
+              "panelName": "earningDataValue",
+              "children": [
+                {
+                  "type": "pageActionButton",
+                  "id": "editPanel",
+                  "label": "Edit",
+                  "onClick": "<%
+                    pageVariables.eligibleEarnings = Validation.setPanelValues(loopWorkerAllocation, pageVariables.earningGroupsToSelectFrom ?? []);                    
+                    if(earningGroupList.isEnabled()){                      
+                      earningGroupList.setEnabled(false);
+                    }else{
+                      if(!isEarningGroup.value){
+                        earningGroupList.setEnabled(true);
+                      }
+                    }                    
+                    if(setPercentage.getDoNotAdd()){
+                      setPercentage.setDoNotAdd(false);
+                    }else{
+                      setPercentage.setDoNotAdd(true);
+                    }
+                    if(setPercentage.getDoNotRemove()){
+                      setPercentage.setDoNotRemove(false);
+                    }else{
+                      setPercentage.setDoNotRemove(true);
+                    }
+                    var gridIsEnabled = !setPercentage.getDoNotAdd();
+                    var isUpdated = false;
+                    Validation.updateGridEnabled(gridIsEnabled, setPercentage);
+                    
+                    if(calculatePageActionSection.visible){
+                      calculatePageActionSection.setVisible(false);
+                    }else{
+                      calculatePageActionSection.setVisible(true);
+                    }
+                    if(deletePanelSection.visible){
+                      deletePanelSection.setVisible(false);
+                    }else{
+                        if(!((isEarningGroup.value ?? false))){
+                          deletePanelSection.setVisible(true);
+                        }
+                    }
+                    if(!isUpdated){
+                      isUpdated = earningGroupList.isUpdated()
+                    }
+                    if(!(panelUpdated.value ?? false)){
+                      panelUpdated.setValue(isUpdated);
+                    }
+                  %>"
+                },
+                {
+                  "type": "fieldSet",
+                  "id": "earningsData",
+                  "horizontal": true,
+                  "children": [
+                    {
+                      "type": "instanceList",
+                      "id": "earningGroupList",
+                      "enabled": false,
+                      "multiSelect": false,
+                      "required": true,
+                      "label": "Earnings",
+                      "selectedValuesAndDescriptors": "<% [earningDataValue.selectedValues ?? {:}] %>",
+                      "values": "<%
+                        pageVariables.eligibleEarnings ?? [];
+                      %>",
+                      "onChange": "<%
+                        panelUpdated.setValue(true);
+                        self.clearError();
+                        pageVariables.eligibleEarnings = Validation.setPanelValues(loopWorkerAllocation, pageVariables.earningGroupsToSelectFrom);
+                        for(var t: (self.getSelectedEntries() ?? [])){
+                        if(pageVariables.earningsOnPage.map(c =>{c.id}).contains(t.id)){
+                            self.setError('The following Earning is already selected in another Panel: ' + (t.descriptor ?? ''));
+                          }else{
+                            pageVariables.earningsOnPage = pageVariables.earningsOnPage.add(t);
+                          }
+                        }
+                        if(!empty(self.value[0])){
+                          var amountList = 0;                            
+                          var earningsGroupsEarningsMapped = self.selectedEntries.map(x=>{x.descriptor}) ?? [];
+                          for(var row : pageVariables.workersCompensation) {                           
+                          var compPlanSubText = row.compensationElement.descriptor ?? '';                     
+                            if(!empty(earningsGroupsEarningsMapped)){
+                              for(var earning : (earningsGroupsEarningsMapped ?? [])){                                 
+                            var list =  (((compPlanSubText ?? '').contains(earning)) || (('Regular ' + compPlanSubText) ?? '').contains(earning));      
+                                if (list == true){    
+                                  if(row.frequency.descriptor == 'Hourly' ){
+                                       amountList = (row.amount.value * (pageVariables.fte * 40)) ?? '0' + amountList;
+                                  }     
+                                  else{
+                                  amountList = row.amount.value ?? '0' + amountList;
+                                  }
+                                } 
+                              }
+                            }
+                          }                      
+                          totalAmount.setValue(amountList);
+                          individualEarnings.setValues(self.selectedEntries);
+                          individualEarnings.setValue(self.value);                          
+                          Mapping.getEarningsCostingAllocation(self.value[0], getWorkdayDataWQL.data, setPercentage);
+                          pageVariables.percentageData = Validation.getPercentageData(setPercentage.getRows(), (flowVariables.periodDates ?? []), (flowVariables.startDate ?? ''));
+                          if(!empty(pageVariables.percentageData)){
+                            ds.data = {
+                                'gridData': pageVariables.percentageData
+                            }
+                          }
+                        }
+                      %>"
+                    },
+                    {
+                      "type": "instanceList",
+                      "id": "individualEarnings",
+                      "label": "Individual Earnings",
+                      "visible": "<% false %>",
+                      "values": "<% [] %>",
+                      "selectedValuesAndDescriptors": "<% earningDataValue.earnings.map(x =>{{'id': (x.earningId ?? ''), 'descriptor': (x.earningDescriptor ?? '')}}) ?? [] %>",
+                      "enabled": false
+                    },
+                      {
+                      "type": "text",
+                      "id": "totalAmounttxt",
+                      "_showCurrencySymbol": true,
+                      "label": "Total Amount ",
+                      "fractionDigits": 2,
+                      "_currencyCode": "USD",
+                      "enabled": false,
+                      "value": "<%
+                        var amountList = 0;      
+                        var earningsGroupsEarningsMapped = individualEarnings.selectedEntries.map(x=>{x.descriptor}) ?? [];
+                        for(var row : pageVariables.workersCompensation) {                          
+                        var compPlanSubText = row.compensationElement.descriptor ?? '';
+                          if(!empty(earningsGroupsEarningsMapped)){
+                            for(var earning : (earningsGroupsEarningsMapped ?? [])){   
+                                var list =  (((compPlanSubText ?? '').contains(earning)) || (('Regular ' + compPlanSubText) ?? '').contains(earning));          
+                              if (list == true){                                      
+                              if(row.frequency.descriptor == 'Hourly' ){
+                                      amountList = (row.amount.value * (pageVariables.fte * 40)) ?? '0' + amountList;
+                                      amountList = amountList*52;                                      
+                                   }     
+                                  else{
+                                 amountList = row.amount.value ?? '0' + amountList;                                 
+                                  }
+                              } 
+                            }
+                          }
+                        }         
+                        var formattedAmountList = '';
+                        formattedAmountList = Validation.convertStringToCurrency(amountList);
+                        return '$ ' + formattedAmountList ;
+                      %>"
+                    }, 
+                    {
+                      "type": "hidden",
+                      "id": "totalAmount",
+                      "_showCurrencySymbol": true,
+                      "_label": "Total Amount ",
+                      "fractionDigits": 2,
+                      "_currencyCode": "USD",
+                      "enabled": false,
+                      "value": "<%
+                        var amountList = 0;      
+                        var earningsGroupsEarningsMapped = individualEarnings.selectedEntries.map(x=>{x.descriptor}) ?? [];
+                        for(var row : pageVariables.workersCompensation) {
+                        var compPlanSubText = row.compensationElement.descriptor ?? '';
+                          if(!empty(earningsGroupsEarningsMapped)){
+                            for(var earning : (earningsGroupsEarningsMapped ?? [])){   
+                                var list =  (((compPlanSubText ?? '').contains(earning)) || (('Regular ' + compPlanSubText) ?? '').contains(earning));          
+                              if (list == true){                                      
+                              if(row.frequency.descriptor == 'Hourly' ){
+                                      amountList = (row.amount.value * (pageVariables.fte * 40)) ?? '0' + amountList;
+                                      amountList = amountList*52;
+                                  }     
+                                  else{
+                                  amountList = row.amount.value ?? '0' + amountList;
+                                  }
+                              } 
+                            }
+                          }
+                        }                      
+                        return amountList;
+                      %>"
+                    },
+                    {
+                      "type": "text",
+                      "id": "isEarningGroup",
+                      "visible": false,
+                      "value": "<% !empty(earningDataValue.selectedValues) %>"
+                    }
+                  ]
+                },
+                {
+                  "type": "fieldSet",
+                  "id": "test",
+                  "children": [
+                    {
+                      "type": "grid",
+                      "id": "setPercentage",
+                      "rows": "<% earningDataValue.lineData ?? [] %>",
+                      "doNotAdd": true,
+                      "doNotRemove": true,
+                      "showRowMover": true,                  
+                      "enabled": "<% pageVariables.requestType != 'View' %>",
+                      "isArrayOutBinding": "false",
+                      "rowVariableName": "row",
+                      "onRowAdd": "<% 
+                        panelUpdated.setValue(true);
+                        Validation.updateGridEnabled(true, setPercentage);
+                        Validation.validateGridOnAdd(setPercentage);
+                      %>",
+                      "onRowRemove": "<% 
+                        panelUpdated.setValue(true);
+                        Validation.updateGridEnabled(true, setPercentage);
+                        Validation.validateGridOnAdd(setPercentage);
+                      %>",
+                      "indexVariableName": "i",
+                      "columns": [
+                        {
+                          "type": "column",
+                          "columnId": "colRow",
+                          "id": "rowCol",
+                          "label": "Row",
+                          "cellTemplate": {
+                            "type": "number",
+                            "enabled": false,
+                            "id": "rowIndex",
+                            "value": "<% (i + 1)  ?? 1 %>"
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colBudgetUnitWorktag",
+                          "id": "budgetUnitWorktagCol",
+                          "label": "Budget Unit",
+                          "required": true,                          
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "budgetUnitWorktagFieldSet",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "budgetUnitWorktag",
+                                "enabled": false,
+                                "required": true,
+                                "values": "<% getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Budget Unit'}).map(c =>{{'descriptor': ( ((c.referenceID1 ?? '') + '- ' + (c.name ?? ''))), 'id': (c.id ?? '')}}) ?? [] %>",
+                                "selectedValues": "<% [row.budgetUnit.id ?? ''] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment= getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }
+                                    var worktags = getWorktags.invoke({'taggableType': 'CUSTOM_ORGANIZATION', 'worktag': self.value[0], 'taggableTypes': ['CUSTOM_ORGANIZATION_01', 'CUSTOM_ORGANIZATION_02', 'CUSTOM_ORGANIZATION_03','CUSTOM_ORGANIZATION_04','CUSTOM_ORGANIZATION_05','CUSTOM_ORGANIZATION_06','CUSTOM_ORGANIZATION_07','CUSTOM_ORGANIZATION_08','CUSTOM_ORGANIZATION_09','CUSTOM_ORGANIZATION_10']}) ?? [];
+                                    var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'budgetUnit');
+                                    Validation.getRelatedWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, 'Budget Unit', self.value[0]);                                    
+                                  }
+                                %>"
+                              },
+                              {
+                                "type": "hidden",
+                                "id": "workdaylineID",
+                                "value": "<% row %>"
+                              }
+                            ]
+                          }
+                           
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colCostCenterWorktag",
+                          "id": "costCenterWorktagCol",
+                          "label": "Cost Center",
+                          "required": "<% true %>",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "worktagCostCenterWorktag",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "CostCenterWorktag",
+                                "enabled": false,
+                                "required": "<% true %>",
+                                "values": "<% getCostCenter.data.map(t =>{t.costCenter}) ?? []  %>",
+                                "selectedValues": "<% [row.costCenter.id ?? ''] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment= getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }                                     
+                                    Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'CostCenter');
+                                    var worktags = getWorktags.invoke({'taggableType': 'COST_CENTER', 'worktag': self.value[0], 'taggableTypes': ['COST_CENTER']}) ?? [];
+                                    var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+                                    Validation.getRelatedWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, 'CostCenter', self.value[0]);                                           
+                                  }
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colFundWorktag",
+                          "label": "Fund",
+                          "id": "fundWTCol",
+                          "required": true,
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "worktagFundWorktag",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "fundWorktag",
+                                "required": true,
+                                "enabled": false,
+                                "values": "<% getFunds.data.map(x =>{x.fund}) ?? [] %>",
+                                "selectedValues": "<% [row.fund.id ?? ''] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment= getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }                                     
+                                    Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'fund');
+                                    var worktags = getFundsWorktagData.invoke({'id': self.value[0]}) ?? [];                                      
+                                  }
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colActivityWorktag",
+                          "label": "Activity",
+                          "id": "activityWorktagCol",
+                          "required": true,
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "ActivityWorktagFieldSet",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "activityWorktag",
+                                "enabled": false,
+                                "required": true,
+                                "values": "<% getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Activity'}).map(c =>{{'descriptor': ( ((c.referenceID1 ?? '') + '- ' + (c.name ?? ''))), 'id': c.id}}) ?? [] %>",
+                                "selectedValues": "<% [row.activityType.id ?? ''] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment= getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }                                     
+                                    Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'activity');
+                                  }
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colGrantWorktag",
+                          "label": "Grant",
+                          "id": "grantWorktagCol",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "grantWorktagFieldSet",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "grantWorktag",
+                                "enabled": false,
+                                "_enabled": "<% pageVariables.requestType != 'View' %>",
+                                "values": "<% (getGrant.data.map(x =>{x.grant}) ?? []) %>",
+                                "selectedValues": "<% [row.grant.id ?? ''] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);                                  
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment= getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }
+                                    if((earningGroupList.selectedEntries[0].descriptor ?? '') == 'Base Salary'){
+                                      var grantData = getGrantDeferred.invoke({'id': self.value[0]}).data[0];                                  
+                                      if(!empty(grantData.effectiveAwardLine.awardLineSalaryCap.id)){
+                                        var salaryCapBody = getSalaryOverCap.invoke({'salaryCapID': (grantData.effectiveAwardLine.awardLineSalaryCap.id ?? '')});
+                                         var awardLineSalaryCapOverrideID = grantData.effectiveAwardLine.awardLineSalaryCapOverride.id ?? '';                                       
+                                        salaryCapBody = Mapping.getSalaryOverTheCap(salaryCapBody,awardLineSalaryCapOverrideID) ?? {:};
+                                        var salaryAmount = salaryCapBody.amount ?? 0;
+                                         var amountSalaryOverCap = ((totalAmount.value ?? 0) - (salaryAmount * (pageVariables.fte ?? 1.0))); 
+                                        if(amountSalaryOverCap > 0){
+                                          //salaryCapValue.setValue(number:toBigDecimal((amountSalaryOverCap ?? 0), 2, 'HALF_DOWN')); commented as we are bypassing SOC
+                                           console.info('Test Pasha 04/19 before '+ salaryCapValue.getValue());
+                                          salaryCapValue.setValue((0));
+                                          console.info('Test Pasha 04/19 value '+ salaryCapValue.getValue());
+                                        }else{
+                                           console.info('Test Pasha 04/19 before1 '+ salaryCapValue.getValue());
+                                          salaryCapValue.setValue((0));
+                                           console.info('Test Pasha 04/19 value1 '+ salaryCapValue.getValue());
+                                        }
+                                      }
+                                      /**else if(!empty(grantData.salaryCapForGrant.id)){
+                                        var salaryCapBody = getSalaryOverCap.invoke({'salaryCapID': (grantData.salaryCapForGrant.id ?? '')});
+                                        salaryCapBody = salaryCapBody[0] ?? {:};
+                                        var salaryAmount = salaryCapBody.amount ?? 0;
+                                        var amountSalaryOverCap = (totalAmount.value.toDecimal() ?? 0) - salaryAmount; 
+                                        if(amountSalaryOverCap > 0){
+                                          salaryCapValue.setValue(number:toBigDecimal((amountSalaryOverCap ?? 0), 2, 'HALF_DOWN'));
+                                        }else{
+                                          salaryCapValue.setValue((0));
+                                        }
+                                      }**/
+                                      else{
+                                        salaryCapValue.setValue((0));
+                                      }
+                                    }
+                                    var worktags = getWorktags.invoke({'taggableType': 'GRANT', 'worktag': self.value[0], 'taggableTypes': ['GRANT']}) ?? [];
+                                    var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+                                    budgetUnitWorktag.setEnabled(false);
+                                    CostCenterWorktag.setEnabled(false);
+                                    fundWorktag.setEnabled(false);
+                                    activityWorktag.setEnabled(false);
+                                    projectWorktag.setEnabled(false);
+                                    allRemainingWorktag.setEnabled(false);
+                                    indefinite.setValue(false);
+                                    indefinite.setEnabled(false);
+                                    endDate.setVisible(true);                                     
+                                     Validation.SOCAwardExpirationValidation(endDate, grantWorktag, salaryCapValue,pageVariables.fte,totalAmount,(earningGroupList.selectedEntries[0].descriptor ?? ''));                        
+                                  Validation.getRelatedWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, 'Grant', self.value[0]);
+                                  }else{
+                                    salaryCapValue.setValue((0));
+                                  }
+                                  Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? ''), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'grant');
+                                  Validation.updateGridEnabled(true, setPercentage);
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colProjectWorktag",
+                          "label": "Project",
+                          "id": "projectWorktagCol",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "projectWorktagFieldSet",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "projectWorktag",
+                                "enabled": false,
+                                "searchEndPoint": "<% endpoints.getProjectSearch %>",
+                                "searchResultValues": "<% getProjectSearch.data.map(x=>{x.project_worktag ?? {:}}) ?? [] %>",
+                                "values": "<% (getProject.data.map(x =>{{'descriptor': (x.descriptor), 'id': x.id}}) ?? []) %>",
+                                "selectedValuesAndDescriptors": "<% [row.project ?? {:}] %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                       projectClinicalAssignment = getProjectData.invoke({'id': (projectWorktag.value[0] ?? '')}).data[0].assignmentAllocation ?? {:};
+                                    }
+                                    var worktags = getWorktags.invoke({'taggableType': 'PROJECT', 'worktag': self.value[0], 'taggableTypes': ['PROJECT']}) ?? [];
+                                    var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+                                    Validation.getRelatedWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, 'Project', self.value[0]);
+                                  }
+                                  Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'project');
+                                  Validation.updateGridEnabled(true, setPercentage);
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colallRemainingWorktag",
+                          "label": "Additional Worktags",
+                          "id": "allRemainingWorktagCol",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "allRemainingWorktagSet",
+                            "children": [
+                              {
+                                "type": "instanceList",
+                                "id": "allRemainingWorktag",
+                                "enabled": false,
+                                "multiSelect": true,
+                                "values": "<% 
+                                  var projectClinicalAssignment = {:};
+                                  if(!empty(row.project.id)){
+                                    projectClinicalAssignment= getProjectData.invoke({'id': row.project.id}).data[0].assignmentAllocation ?? {:};
+                                  }                                   
+                                  Validation.getAllocationAssignmentWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:})) ?? [];
+                                %>",
+                                "selectedValues": "<%
+                                  var otherWT = [];
+                                  if(!empty(row.gift.id)){
+                                      otherWT.add(row.gift.id);
+                                  }
+                                  if(!empty(row.center.id)){
+                                    otherWT.add(row.center.id);
+                                  }
+                                  if(!empty(row.clinicalAssignment.id)){
+                                    otherWT.add(row.clinicalAssignment.id);
+                                  }
+                                  return otherWT ?? [];
+                                %>",
+                                "onChange": "<%                                  
+                                  if(!empty(self.value[0])){
+                                    var projectClinicalAssignment = {:};
+                                    if(!empty(projectWorktag.value[0])){
+                                      projectClinicalAssignment = getProjectData.invoke({'id': projectWorktag.value[0]}).data[0].assignmentAllocation ?? {:};
+                                    }                                     
+                                    Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'allWorktags');
+                                    if(!empty(self.selectedEntries.filter(x =>{(x.descriptor ?? '').contains('Gift')}))){
+                                      var worktags = getWorktags.invoke({'taggableType': 'GIFT', 'worktag': (self.selectedEntries.filter(x =>{(x.descriptor ?? '').contains('Gift')})[0].id ?? ''), 'taggableTypes': ['GIFT']}) ?? [];
+                                      var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+                                      Validation.getRelatedWorktags(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, 'GIFT', ((self.selectedEntries.filter(x =>{(x.descriptor ?? '').contains('Gift')})[0].id ?? ''))); 
+                                    }                                    
+                                  }
+                                   Validation.updateGridEnabled(true, setPercentage);
+                                 panelUpdated.setValue(true);
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colSalaryCap",
+                          "id": "salaryCapCol",
+                          "label": "Salary Over the Cap",
+                          "visible": "<% !empty(earningGroupList.selectedEntries[0])? earningGroupList.selectedEntries[0].descriptor == 'Base Salary' : false %>",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "salaryoverCapSection",
+                            "children": [
+                              {
+                                "type": "number",
+                                "enabled": false,
+                                "id": "salaryCapValue",
+                                "fractionDigits": 2,
+                                 "value": "<% 
+                                  if((earningGroupList.selectedEntries[0].descriptor ?? '') == 'Base Salary'){
+                                    var grantData = getGrantDeferred.invoke({'id': (row.grant.id ?? '')}).data[0] ?? {:};
+                                    if(!empty(grantData.effectiveAwardLine.awardLineSalaryCap.id)){
+                                      var salaryCapBody = getSalaryOverCap.invoke({'salaryCapID': (grantData.effectiveAwardLine.awardLineSalaryCap.id ?? '')});
+                                       var awardLineSalaryCapOverrideID = grantData.effectiveAwardLine.awardLineSalaryCapOverride.id ?? '';
+                                        salaryCapBody = Mapping.getSalaryOverTheCap(salaryCapBody,awardLineSalaryCapOverrideID) ?? {:};
+                                        //  salaryCapBody = salaryCapBody[0] ?? {:};
+                                        if(!empty(salaryCapBody)){
+                                          var salaryAmount = salaryCapBody.amount ?? 0;
+                                          // var amountSalaryOverCap = (totalAmount.value ?? 0) - salaryAmount; 
+                                          //var amountSalaryOverCap = (pageVariables.fte ?? 1.0) * ((totalAmount.value ?? 0) - salaryAmount); 
+                                                 var amountSalaryOverCap = ((totalAmount.value ?? 0) - (salaryAmount * (pageVariables.fte ?? 1.0))); 
+                                          if(amountSalaryOverCap > 0){
+                                            //var amountSalaryOverCap = (totalAmount.value ?? 0) - salaryAmount; 
+                                           // return number:toBigDecimal((amountSalaryOverCap ?? 0), 2, 'HALF_DOWN'); commented as we are byPassing SOC
+                                            return 0;
+                                          }else{
+                                            return 0;
+                                          }
+                                        }
+                                    }                                    
+                                  /*  var awardLineSalaryCapOverrideID = grantData.effectiveAwardLine.awardLineSalaryCapOverride.id ?? '';
+                                    if(!empty(awardLineSalaryCapOverrideID) && !empty(salaryCapBody)){                                   
+                                        var salaryCapOverride = salaryCapBody.filter(x => {x.intervalID == awardLineSalaryCapOverrideID});                                              
+                                        salaryCapBody = salaryCapOverride;   
+                                    } */
+                                    /**else if(!empty(grantData.salaryCapForGrant.id)){
+                                      var salaryCapBody = getSalaryOverCap.invoke({'salaryCapID': (grantData.salaryCapForGrant.id ?? '')});
+                                    }**/                                 
+                                  }
+                                  return 0;
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colStartDate",
+                          "label": "Start Date",
+                          "id": "startDateCol",
+                          "required": "<% true %>",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "startDateFieldSet",
+                            "children": [
+                              {
+                                "type": "date",
+                                "id": "startDate",
+                                "enabled": false,
+                                "required": "<% true %>",
+                                "value": "<% 
+                                    return row.startDate ?? '';
+                                 %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  endDate.clearError();
+                                  startDate.clearError();
+                                  Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'startDate');
+                                  if(!empty(endDate.value)){
+                                      if(endDate.value < (startDate.value ?? '')){
+                                          endDate.setError('Start Date must be before End Date');
+                                      }
+                                  }
+                                  if(!empty(startDate.value) && (((startDate.value.format('yyyy-MM-dd')) < '2025-12-28' ) )){
+                                      startDate.setError('For labor costing adjustments prior to 12/28/2025 for non-exempt workers and 1/1/2026 for exempt workers, please submit a Funding Reallocation Form (FRF), located on the Infoscope Workday Training Resources Finance page.');
+                                  }                                  
+                                %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colEndDate",
+                          "id": "endDatecol",
+                          "label": "End Date",
+                          "required": "<% !(row.indefinite ?? false) %>",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "endDateFieldSet",
+                            "children": [
+                              {
+                                "type": "date",
+                                "id": "endDate",
+                                "enabled": false,
+                                "value": "<% 
+                                    return row.endDate ?? '';
+                                 %>",
+                                "required": "<% !(row.indefinite ?? false) %>",
+                                "onChange": "<%
+                                  panelUpdated.setValue(true);
+                                  endDate.clearError();
+                                  startDate.clearError();
+                                  Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'endDate');                                
+                                  Validation.SOCAwardExpirationValidation(endDate, grantWorktag, salaryCapValue,pageVariables.fte,totalAmount,(earningGroupList.selectedEntries[0].descriptor ?? ''));                                               
+                                  if(!empty(endDate.value)){
+                                    if(endDate.value < (startDate.value ?? '')){
+                                      endDate.setError('Start Date must be before End Date');
+                                    }
+                                  }
+                                   if(!empty(startDate.value) && (((startDate.value.format('yyyy-MM-dd')) < '2025-12-28' ) )){
+                                      startDate.setError('For labor costing adjustments prior to 12/28/2025 for non-exempt workers and 1/1/2026 for exempt workers, please submit a Funding Reallocation Form (FRF), located on the Infoscope Workday Training Resources Finance page.');
+                                  }   
+                            %>"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colIndefinite",
+                          "label": "Indefinite",
+                          "id": "indefiniteCol",
+                          "cellTemplate": {
+                            "type": "checkBox",
+                            "id": "indefinite",
+                            "enabled": "<% false %>",
+                            "value": "<% (row.indefinite ?? false); %>",
+                            "_value": false,
+                            "onChange": "<%
+                              panelUpdated.setValue(true);
+                              Validation.validateWorktags((indefinite ?? {:}), CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag,(startDate.value?? ''), (endDate.value ?? ''), pageVariables.validationDate, (earningGroupList.selectedEntries[0].descriptor ?? {:}), (pageVariables.workerType ?? ''), (pageVariables.assignmentallocations ?? []), (pageVariables.allWorkTags ?? []),   (projectClinicalAssignment ?? {:}), 'indefinite');
+                              if(self.value ?? false){
+                                  endDate.setValue('');
+                                  endDate.setEnabled(false);
+                                  endDate.setRequired(false);
+                                  endDate.setVisible(false);
+                              }else{
+                                  endDate.setEnabled(true);
+                                  endDate.setRequired(true);
+                                  endDate.setVisible(true);
+                              }
+                            %>"
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colAmount",
+                          "label": "Amount",
+                          "id": "amountCol",
+                          "cellTemplate": {
+                            "type": "number",
+                            "id": "numberAmount",
+                            "fractionDigits": 2,
+                            "enabled": false,
+                            "onChange": "<%                             
+                              panelUpdated.setValue(true);
+                              var amountList = totalAmount.value ?? 0;
+                              var finalper = 0;
+                              if(! empty self.value){
+                                percentAmount.clearError();
+                                  finalper =  number:toBigDecimal((((self.value/amountList) ?? 0)*100), 2, 'HALF_UP');
+                              }
+                              percentAmount.value = finalper;
+                              percentText.setValue('<p style=\"text-align: right;\">' + finalper + '% </p>');
+                            %>"
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colPercent",
+                          "label": "Percent",
+                          "id": "percentCol",
+                          "cellTemplate": {
+                            "type": "fieldSet",
+                            "id": "percentSection",
+                            "children": [
+                              {
+                                "type": "fieldSet",
+                                "id": "percentAmountSection",
+                                "children": [
+                                  {
+                                    "type": "number",
+                                    "id": "percentAmount",
+                                    "enabled": true,
+                                    "visible": false,
+                                    "fractionDigits": "3",
+                                    "value": "<%!empty((row.allocationPercent)) ? (string:isString(row.allocationPercent)? number:toBigDecimal((row.allocationPercent).toDecimal()*100, 2, 'UNNECESSARY') : (number:toBigDecimal(((row.allocationPercent)*100), 2, 'UNNECESSARY'))) : 0 %>",
+                                    "onChange": "<%
+                                      self.clearError();
+                                      panelUpdated.setValue(true);
+                                      if(!empty(self.value)){
+                                        percentText.setValue('<p style=\"text-align: right;\">' + number:toBigDecimal((self.value), 2, 'UNNECESSARY') + '% </p>');
+                                      } 
+                                      else {
+                                        self.setError('Allocation Percent cannot be less than or equal to 0');
+                                      }
+                                    %>"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "fieldSet",
+                                "id": "percentTextSection",
+                                "children": [
+                                  {
+                                    "type": "richText",
+                                    "enabled": "false",
+                                    "visible": "true",
+                                    "id": "percentText",
+                                    "value": "<%'<p style=\"text-align: right;\">' + (!empty((row.allocationPercent)) ? (string:isString(row.allocationPercent)? number:toBigDecimal((row.allocationPercent).toDecimal()*100, 2, 'UNNECESSARY') : (number:toBigDecimal(((row.allocationPercent)*100), 2, 'UNNECESSARY'))) : '0.00') + '% </p>'; %>"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "type": "column",
+                          "columnId": "colComment",
+                          "label": "Comment",
+                          "id": "commentCol",
+                          "cellTemplate": {
+                            "type": "textArea",
+                            "id": "comment",
+                            "enabled": false,
+                            "value": "<% '' %>",
+                            "onChange": "<% 
+                              panelUpdated.setValue(true);
+                            %>"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "hidden",
+                      "id": "onLoadFunction",
+                      "value": "<%
+                        pageVariables.percentageData = {
+                            'gridData': Validation.getPercentageData(setPercentage.getRows(), (flowVariables.periodDates ?? []), (flowVariables.startDate ?? ''))
+                        };
+                      %>"
+                    },
+                    {
+                      "type": "section",
+                      "id": "calculatePageActionSection",
+                      "visible": "<%  false %>",
+                      "children": [
+                        {
+                          "type": "pageActionButton",
+                          "id": "calculateButton",
+                          "label": "Calculate",
+                          "onClick": "<%
+                            var startDateEmpty = false;
+                            var endDateEmpty = false;
+                            var indefiniteValue = false;
+                            var endDateEmptyVar = false;
+                           // Validation.updateGridEnabled(true, setPercentage);                           
+                            for (var x : setPercentage.getRows() ?? []){
+                              x.childrenMap.colStartDate.childrenMap.startDate.clearError();
+                              x.childrenMap.colEndDate.childrenMap.endDate.clearError();                             
+                              startDateEmpty = empty(x.childrenMap.colStartDate.childrenMap.startDate.value);
+                              endDateEmpty = empty(x.childrenMap.colEndDate.childrenMap.endDate.value);                             
+                              indefiniteValue = x.childrenMap.colIndefinite.value;
+                              if(startDateEmpty){
+                                x.childrenMap.colStartDate.childrenMap.startDate.setError('Start Date must have a value');
+                              }
+                              if(endDateEmpty && (indefiniteValue == false)){
+                                endDateEmptyVar = true;
+                                x.childrenMap.colEndDate.childrenMap.endDate.setError('End Date must have a value');
+                              }
+                            }
+                            if(!startDateEmpty && !endDateEmptyVar){                          
+                                var newMapp = Mapping.mapAllocationData(loopWorkerAllocation.getChildren(), ! empty(getWorkerData.data[0]) ? getWorkerData.data[0] : ! empty(getSeparatedWorkerData.data[0]) ? getSeparatedWorkerData.data[0] : ! empty(getPrehireWorkerData.data[0]) ? getPrehireWorkerData.data[0] : {:} , (flowVariables.startDate ?? ''), (flowVariables.endDate ?? ''),  pageVariables.validationDate, 'createAllocation',(flowVariables.position ?? ''));
+                                var errorPayload = Validation.allocationValidation(newMapp, (individualEarnings.value ?? ''), (flowVariables.startDate ?? ''), (flowVariables.endDate ?? ''), 'initialSubmit', (flowVariables.position ?? '')) ?? [];
+                                Validation.setGridError(setPercentage.getRows(), errorPayload, errorWidget, submit.value);
+                                pageVariables.percentageData = Validation.getPercentageData(setPercentage.getRows(), (flowVariables.periodDates ?? []), (flowVariables.startDate ?? ''));
+                                if(!empty(pageVariables.percentageData)){
+                                    ds.data = {
+                                        'gridData': pageVariables.percentageData
+                                    }
+                                }
+                            }
+                          %>"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "validation",
+                      "visible": false,
+                      "value": "<% '' %>"
+                    },
+                    {
+                      "type": "dynamicSection",
+                      "id": "ds",
+                      "data": "<% pageVariables.percentageData ?? {:} %>",
+                      "dataVariableName": "allocationData",
+                      "children": [
+                        {
+                          "type": "grid",
+                          "id": "viewAllocation",
+                          "enabled": false,
+                          "label": "View Allocation",
+                          "rowVariableName": "row",
+                          "rows": "<% allocationData.gridData ?? [] %>",
+                          "dynamicColumns": {
+                            "type": "dynamicColumns",
+                            "columns": "<%  flowVariables.grid ?? [] %>",
+                            "columnVariableName": "aColumn",
+                            "id": "<% aColumn.id %>",
+                            "columnId": "<% aColumn.id %>",
+                            "label": "<% aColumn.name %>",
+                            "templateId": "<% aColumn.type %>",
+                            "attributeName": "<% aColumn.dataField %>"
+                          },
+                          "cellTemplates": [
+                            {
+                              "type": "cellTemplate",
+                              "templateId": "string",
+                              "id": "cellTemplateID",
+                              "template": {
+                                "type": "text"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "hidden",
+                  "id": "costingAllocationPlan",
+                  "value": "<% earningDataValue ?? {:} %>"
+                },
+                {
+                  "type": "number",
+                  "id": "index",
+                  "visible": false,
+                  "enabled": false,
+                  "value": "<% number:toBigDecimal(indexPanel, 2, 'CEILING') ?? 0 %>"
+                },
+                {
+                  "type": "section",
+                  "id": "deletePanelSection",
+                  "visible": "<%  false %>",
+                  "children": [
+                    {
+                      "type": "pageActionButton",
+                      "id": "deletePanel",
+                      "label": "Delete Panel",
+                      "_visible": "<% ((earningDataValue.earningGroup[0] ?? '') != 'position') %>",
+                      "visible": "<% true %>",
+                      "onClick": "<%
+                        loopWorkerAllocation.removePanel(index.value);
+                        pageVariables.eligibleEarnings = Validation.setPanelValues(loopWorkerAllocation, pageVariables.earningGroupsToSelectFrom);
+                      %>"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "panelUpdated",
+                  "enabled": false,
+                  "visible": false,
+                  "value": "<% false %>"
+                },
+                {
+                  "type": "text",
+                  "id": "errorWidget",
+                  "visible": false,
+                  "value": "<% '' %>"
+                },
+                {
+                  "type": "hidden",
+                  "id": "isEarningGroup",
+                  "value": "<% !empty(earningDataValue.earnings) %>"
+                }
+              ]
+            },
+            {
+              "type": "hidden",
+              "id": "setPanelOnLoad",
+              "value": "<% pageVariables.eligibleEarnings = Validation.setPanelValues(loopWorkerAllocation, pageVariables.earningGroupsToSelectFrom ?? []); %>"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "id": "hasPendingTransactionsSection",
+          "visible": "<% pageVariables.hasPendingTransactions %>",
+          "children": [
+            {
+              "type": "text",
+              "id": "hasPendingTransaction",
+              "enabled": false,
+              "value": "This User has a pending transaction"
+            },
+            {
+              "type": "text",
+              "id": "worker",
+              "label": "Worker",
+              "enabled": false,
+              "value": "<% ! empty getWorkerData.data[0].worker.descriptor  ? getWorkerData.data[0].worker.descriptor  : ! empty getPrehireWorkerData.data[0].worker.descriptor ? (getPrehireWorkerData.data[0].worker.descriptor ?? '')  : ! empty getSeparatedWorkerData.data[0].worker.descriptor ? (getSeparatedWorkerData.data[0].worker.descriptor ?? '') : '' %>"
+            },
+            {
+              "type": "text",
+              "id": "pendingOn",
+              "label": "Pending On: ",
+              "enabled": false,
+              "value": "<% (getPendingTransactions.data[0].approvals.map(t =>{(t.worker.descriptor ??'')}) ?? []).join(',') ?? ''; %>"
+            },
+            {
+              "type": "text",
+              "id": "bPStatus",
+              "label": "Status: ",
+              "enabled": false,
+              "value": "<% getPendingTransactions.data[0].status ?? '' %>"
+            },
+            {
+              "type": "externalLink",
+              "id": "eventLink",
+              "label": "Event: ",
+              "render": false,
+              "enabled": false,
+              "descriptor": "<% (getPendingTransactions.data[0].AssignCostingAllocationEvent.descriptor ?? '') %>",
+              "url": "<% attrstore.TenantURL + tenant +'/d/workbooks/get/' + (getPendingTransactions.data[0].id ?? '') + '.htmld' %>"
+            }
+          ]
+        },
+        {
+          "type": "editButtonBar",
+          "editButtons": [
+            {
+              "type": "editButton",
+              "label": "Submit",
+              "visible": "<% !pageVariables.hasPendingTransactions %>",
+              "id": "submit",
+              "buttonType": "PRIMARY"
+            },
+            {
+              "type": "editButton",
+              "label": "Cancel",
+              "id": "cancel",
+              "visible": "<% pageVariables.requestType != 'View' %>",
+              "buttonType": "AUXILIARY",
+              "ignoreRequiredFields": "true"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

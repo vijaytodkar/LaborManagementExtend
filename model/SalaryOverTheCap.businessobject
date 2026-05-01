@@ -1,0 +1,197 @@
+{
+  "id": 8,
+  "name": "SalaryOverTheCap",
+  "label": "Salary Over The Cap",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "salaryOverTheCaps",
+    "label": "Salary Over The Caps"
+  },
+  "fields": [
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": true,
+      "target": "CostingAllocationLineDetailsTransaction",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "costingAllocationLineDetailsTransaction",
+      "id": 1
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "FUND",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "fund",
+      "id": 2
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "budgetUnitId",
+      "id": 3
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "budgetUnitDescriptor",
+      "id": 4
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "activityId",
+      "id": 5
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "activityDescriptor",
+      "id": 6
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "costCenterId",
+      "id": 7
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "costCenterDescriptor",
+      "id": 8
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "centerId",
+      "id": 9
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "centerDescriptor",
+      "id": 10
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "grantId",
+      "id": 11
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": true,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "grantDescriptor",
+      "id": 12
+    },
+    {
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "TEXT",
+      "name": "giftId",
+      "id": 13
+    },
+    {
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "TEXT",
+      "name": "giftDescriptor",
+      "id": 14
+    },
+    {
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "TEXT",
+      "name": "projectId",
+      "id": 15
+    },
+    {
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "TEXT",
+      "name": "projectDescriptor",
+      "id": 16
+    },
+    {
+      "decimals": 5,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "type": "DECIMAL",
+      "name": "allocationPercent",
+      "id": 17
+    },
+    {
+      "id": 18,
+      "name": "clinicalAssignmentId",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 19,
+      "name": "clinicalAssignmentDescriptor",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 20,
+      "name": "orderAllocation",
+      "type": "INTEGER",
+      "isPurgeable": false,
+      "enableIndex": false
+    }
+  ]
+}

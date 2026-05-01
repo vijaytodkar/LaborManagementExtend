@@ -1,0 +1,39 @@
+{
+  "id": "CostingAllocationSendBackToPreparerDetails",  
+    "endPoints": [
+    {
+      "name": "eventInfo",
+      "baseUrlType": "WORKDAY-BP",
+      "url": "<% //get the BP event with the associated eventId, passed in via query param
+      '/events/' + queryParams.eventId %>",
+      "authType": "sso"
+    },
+    {
+      "name": "getCostingAllocationRequestPreparer",
+      "baseUrlType": "WORKDAY-APP",
+      "exclude": "<% empty(eventInfo['for'].id) %>",
+      "url": "<% '/costingAllocationTransactionPreparers/' + eventInfo['for'].id %>",
+      "authType": "laborISUV2"
+    },
+	{
+      "name": "getCostingAllocationRequest",
+      "baseUrlType": "WORKDAY-APP",
+      "exclude": "<% empty(getCostingAllocationRequestPreparer.costingAllocationRequestTransaction.id) %>",
+      "url": "<% '/costingAllocationRequestTransactions/' + getCostingAllocationRequestPreparer.costingAllocationRequestTransaction.id %>",
+      "authType": "laborISUV2"
+    }
+   ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Details"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+       
+      ]
+    }    
+  }
+}

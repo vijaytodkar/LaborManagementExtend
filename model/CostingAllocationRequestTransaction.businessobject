@@ -1,0 +1,149 @@
+{
+  "id": 1,
+  "name": "CostingAllocationRequestTransaction",
+  "label": "Costing Allocation Request Transaction",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "costingAllocationRequestTransactions",
+    "label": "Costing Allocation Request Transactions"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "worker",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": true,
+      "isPurgeable": false,
+      "target": "WORKER",
+      "secureByTarget": true,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 2,
+      "name": "position",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "target": "POSITION",
+      "secureByTarget": true,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 3,
+      "name": "active",
+      "type": "BOOLEAN",
+      "isPurgeable": false,
+      "enableIndex": false
+    },
+    {
+      "id": 4,
+      "name": "costingAllocationEarningsTransaction",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "CostingAllocationEarningRequestTransaction"
+    },
+    {
+      "id": 5,
+      "name": "startDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 6,
+      "name": "endDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 8,
+      "name": "hasRetroActiveTransaction",
+      "type": "BOOLEAN"
+    },
+    {
+      "id": 9,
+      "name": "approver",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "Approver"
+    },
+    {
+      "id": 11,
+      "name": "status",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 12,
+      "name": "sendBackComment",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 13,
+      "name": "retroActiveAdjustmentMade",
+      "type": "BOOLEAN",
+      "isPurgeable": false,
+      "enableIndex": false
+    },
+    {
+      "id": 14,
+      "name": "retroActiveAdjustmentDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 15,
+      "name": "retroActiveAdjustmentWorker",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "target": "WORKER",
+      "secureByTarget": false,
+      "enableReportingFromTarget": false
+    },
+    {
+      "id": 16,
+      "name": "submittedBy",
+      "type": "TEXT",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "isReferenceId": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 17,
+      "name": "payPeriodStartDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 18,
+      "name": "costingAllocationTransactionPreparer",
+      "type": "SINGLE_INSTANCE",
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "target": "CostingAllocationTransactionPreparer",
+      "secureByTarget": false,
+      "enableReportingFromTarget": false
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": 6,
+  "name": "Earning",
+  "label": "Earning",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation",
+    "SetUpCostingAllocationAttributes"
+  ],
+  "defaultCollection": {
+    "name": "earnings",
+    "label": "Earnings"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "earningId",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 2,
+      "name": "earningDescriptor",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": true,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    }
+  ]
+}

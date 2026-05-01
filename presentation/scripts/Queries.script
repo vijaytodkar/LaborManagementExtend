@@ -1,0 +1,18 @@
+
+var getCostingAllocationByDateApproval = function(startDate, endDate, status, workerID, costingAllocationRequestID) {
+
+   var startDateValue = startDate ?? '';
+   var endDateValue = endDate ?? '';
+   var statusValue = status ?? '';
+   var workerIDValue = workerID ?? '';
+   var allocationRequestValue = costingAllocationRequestID ?? '';  
+    console.info('costing allocation by start date: ' + json:asJSON(startDateValue) + ' endDate ' + json:asJSON(endDateValue));
+
+    var query = 'SELECT CostingAllocationPlan, workdayID as id, worker, cf_XNTDCostingAllocationEarningIDOnEarningGroup{workdayID, earningId as id, earningDescriptor as descriptor} as earningGroup, position, status, costingAllocationLineDetails{workdayID as id, sequence, CostingAllocationLineDetail, startDate, endDate, indefinite, fund, budgetUnit, activityType, costCenter, center, grantId, grantDescriptor, gift, project, allocationPercent} as costingAllocationLineDetails FROM LaborManagementV2_gnqwhx_costingAllocationPlans WHERE (costingAllocationRequest IN(\'' + allocationRequestValue + '\') AND worker in (\'' + workerIDValue + '\'))'
+    
+};
+
+
+{
+    "getCostingAllocationByDateApproval": getCostingAllocationByDateApproval
+}

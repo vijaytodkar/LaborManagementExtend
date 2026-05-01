@@ -1,0 +1,17 @@
+{
+  "id": "microConclusionPage",
+  "endPoints": [ ],
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "title": {
+      "type": "title",
+      "label": "Workday Extend"
+    },
+    "microConclusion": "true",
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [ ]
+    }
+  }
+}

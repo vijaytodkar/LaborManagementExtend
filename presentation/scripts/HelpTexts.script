@@ -1,0 +1,9 @@
+var helpTextsByType = function(type) {
+  if(type =='sampleHelpText'){
+    return '<span><h2><b>Help Section: Understanding Your Dashboard</b></h2><p>Welcome to your personalized dashboard! This interface is designed to provide you with quick access to essential tools, insights, and features tailored to your needs. Below is a guide to help you navigate and make the most of your experience:</p><ul><li><b>Navigation Bar:</b> Located at the top, the navigation bar allows you to switch between different sections such as <em>Home</em>, <em>Reports</em>, <em>Settings</em>, and <em>Notifications</em>. Hover over each icon for a brief description.</li><li><b>Search Functionality:</b> Use the search bar to quickly locate specific items, reports, or settings. Simply type in keywords, and relevant results will appear instantly.</li><li><b>Widgets:</b> Your dashboard includes customizable widgets that display real-time data, updates, and metrics. Click the settings icon on each widget to adjust its content or layout.</li><li><b>Notifications Panel:</b> Stay informed with alerts and updates. The notifications panel highlights important messages, reminders, and system alerts. Click on a notification to view details.</li><li><b>Help & Support:</b> Need assistance? Click the Help icon in the bottom-right corner to access FAQs, tutorials, and contact support. You can also use the live chat feature for immediate help.</li><li><b>Settings:</b> Personalize your experience by adjusting preferences in the Settings menu. Here, you can update your profile, manage permissions, and configure system settings.</li></ul><p>Remember, your dashboard is designed to be intuitive and user-friendly. If you encounter any issues or have questions, don\’t hesitate to reach out through the <b>Help & Support</b> section. We\’re here to ensure you have a seamless experience.</p></span>';
+  }
+};
+
+{
+  "helpTextsByType": helpTextsByType
+}

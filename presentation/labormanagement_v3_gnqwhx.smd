@@ -1,0 +1,26 @@
+{
+  "id": "labormanagement_v3_gnqwhx",
+  "languages": [
+    {
+      "code": "en-US",
+      "description": "English"
+    }
+  ],
+  "siteAuth": {
+    "authTypes": [
+      {
+        "scheme": "SSO",
+        "id": "sso"
+      },
+      {
+        "scheme": "ISU",
+        "id": "laborISUV2",
+        "username": "XTND_Labor_Tracking_V3_ISU"
+      }
+    ]
+  },
+  "siteId": "labormanagement_v3_gnqwhx",
+  "cdnEnabled": true,
+  "siteProperties": [ ],
+  "applicationId": "labormanagement_v3_gnqwhx"
+}

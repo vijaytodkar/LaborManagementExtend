@@ -1,0 +1,40 @@
+{
+  "id": 2,
+  "name": "AssignCostingAllocation",
+  "label": "Assign Costing Allocation",
+  "description": "Business Process for Assign Costing Allocation",
+  "targetBusinessObject": "CostingAllocationRequestTransaction",
+  "useForOrchestrate": true,
+  "allowsCancel": true,
+  "approvalStep": {
+    "actions": [
+      "APPROVE",
+      "DENY",
+      "SEND_BACK"
+    ],
+    "pageRoute": "/CostingAllocationApproval/{eventId}"
+  },
+  "revisePageRoute": "/CostingAllocationApproval/{eventStepId}",
+  "details": {
+    "pageRoute": "/CostingAllocationApproval/{eventId}"  
+  },
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "allowsManualSendBack": true,
+  "allowsRescind": true,
+  "allowedParentProcesses": [
+    {
+      "id": 1,
+      "name": "AssignCostingAllocation",
+      "initiationPageRoute": "/ParentActionAssignCostingAllocationprompt/{eventStepId}",
+      "parentBusinessProcesses": [
+        "CHANGE_JOB",
+        "CONTRACT_CONTINGENT_WORKER",
+        "HIRE_EMPLOYEE",
+        "CREATE_POSITION"
+      ],
+      "label": "Assign Costing Allocation"
+    }
+  ]
+}

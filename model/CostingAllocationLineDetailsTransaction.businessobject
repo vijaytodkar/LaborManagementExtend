@@ -1,0 +1,196 @@
+{
+  "id": 4,
+  "name": "CostingAllocationLineDetailsTransaction",
+  "label": "Costing Allocation Line Details Transaction",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "costingAllocationLineDetailsTransactions",
+    "label": "Costing Allocation Line Details Transactions"
+  },
+  "fields": [
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "FUND",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "fund",
+      "id": 1
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CUSTOM_ORGANIZATION",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "budgetUnit",
+      "id": 2
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CUSTOM_ORGANIZATION",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "activityType",
+      "id": 3
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "COST_CENTER",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "costCenter",
+      "id": 4
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CUSTOM_ORGANIZATION",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "center",
+      "id": 5
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "grantId",
+      "id": 6
+    },
+    {
+      "enableSearch": false,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "isReferenceId": false,
+      "type": "TEXT",
+      "name": "grantDescriptor",
+      "id": 7
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "GIFT",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "gift",
+      "id": 8
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "PROJECT",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "project",
+      "id": 9
+    },
+    {
+      "decimals": 5,
+      "enableIndex": false,
+      "isPurgeable": false,
+      "type": "DECIMAL",
+      "name": "allocationPercent",
+      "id": 10
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CostingAllocationIntervalTransaction",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "costingAllocationIntervalTransaction",
+      "id": 11
+    },
+    {
+      "type": "BOOLEAN",
+      "name": "default",
+      "id": 12
+    },
+    {
+      "type": "BOOLEAN",
+      "name": "isRetroActive",
+      "id": 13
+    },
+    {
+      "type": "TEXT",
+      "name": "comment",
+      "id": 14
+    },
+    {
+      "id": 15,
+      "name": "allocationOrder",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    },
+    {
+      "id": 16,
+      "name": "isUpdated",
+      "type": "BOOLEAN",
+      "isPurgeable": false,
+      "enableIndex": false
+    },
+    {
+      "enableReportingFromTarget": false,
+      "secureByTarget": false,
+      "target": "CUSTOM_ORGANIZATION",
+      "isPurgeable": false,
+      "useForDisplay": false,
+      "type": "SINGLE_INSTANCE",
+      "name": "clinicalAssignment",
+      "id": 17
+    },
+    {
+      "id": 18,
+      "name": "hasSalaryOvertheCap",
+      "type": "BOOLEAN",
+      "isPurgeable": false,
+      "enableIndex": false
+    },
+    {
+      "id": 19,
+      "name": "salaryOverTheCapAmount",
+      "type": "DECIMAL",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "decimals": 2
+    },
+    {
+      "id": 20,
+      "name": "salaryOverTheCap",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "SalaryOverTheCap"
+    },
+    {
+      "id": 21,
+      "name": "workdaySOCLineData",
+      "type": "TEXT",
+      "isReferenceId": false,
+      "useForDisplay": false,
+      "isPurgeable": false,
+      "enableIndex": false,
+      "enableSearch": false
+    }
+  ]
+}

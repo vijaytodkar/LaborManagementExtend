@@ -1,0 +1,691 @@
+{
+  "id": "CostingAllocationApproval",
+  "endPoints": [
+    {
+      "name": "getEvent",
+      "baseUrlType": "WORKDAY-BP",
+      "url": "<%
+              return '/events/' + queryParams.eventId %>",
+      "authType": "sso"
+    },
+    {
+      "name": "getCostingAllocationRequest",
+      "baseUrlType": "WORKDAY-APP",
+      "exclude": "<% empty(getEvent['for'].id) %>",
+      "url": "<% '/costingAllocationRequestsTransactions/' + getEvent['for'].id %>",
+      "authType": "laborISUV2"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getGrant",
+      "authType": "sso",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT grantName as descriptor, workdayID as id FROM grants WHERE inactive = false') %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getGift",
+      "authType": "sso",
+      "httpMethod": "GET",
+      "url": "/GetReferencessSync/launch?referenceID=Gift_Reference_ID"
+    },
+    {
+      "_baseUrlType": "Workday-WQL",
+      "name": "getProject",
+      "authType": "sso",
+      "url": "https://api.workday.com/projects/v1/projects"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getCostingAllocationRequest.worker.id); %>",
+      "url": "<%
+      return '/data?query=' + string:urlEncode('SELECT worker, allPositions as positions FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + getCostingAllocationRequest.worker.id + '\\')') 
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostingAllocationRequestObject",
+      "authType": "laborISUV2",
+      "_exclude": true,
+      "httpMethod": "GET",
+      "exclude": "<% empty(getWorkerData.data[0].worker.id) %>",
+      "url": "<%
+        var query =  'SELECT workdayID as id, CostingAllocationRequest, worker, position, costingAllocationPlan FROM LaborManagementV2_gnqwhx_costingAllocationRequests WHERE worker IN (\\'' + (getWorkerData.data[0].worker.id ?? '') + '\\') AND workdayID = \\''+ (getCostingAllocationRequest.costingAllocationRequest.id ?? '') + '\\'';
+        return '/data?query=' + string:urlEncode(query);
+
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCustomOrganization",
+      "authType": "sso",
+      "url": "<%
+              if(environment == 'WCPDEV'){
+                  var wql = 'SELECT planDimensionAsCustomOrganization, workdayID as id, name as descriptor, type1 FROM customOrganizations WHERE type1 in (a6bbbc0c1916100378779ca119020000,a6bbbc0c191610037820a28c4acf0000,a6bbbc0c1916100378779d3aaff30000)';
+              }
+              return '/data?query=' + string:urlEncode(wql);
+              %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostingAllocation",
+      "authType": "laborISUV2",
+      "_exclude": true,
+      "httpMethod": "GET",
+      "exclude": "<% empty(getWorkerData.data[0].worker.id) %>",
+      "url": "<%
+        var query = Queries.getCostingAllocationByDateApproval((getCostingAllocationRequest.startDate ?? ''), (getCostingAllocationRequest.endDate ?? ''), 'New Request', (getWorkerData.data[0].worker.id ?? ''), (getCostingAllocationRequestObject.data[0].id));
+        return '/data?query=' + string:urlEncode(query);
+
+      %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCustomOrgDefaults",
+      "deferred": true,
+      "authType": "sso",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT fund, costCenter, grant, gift, project_worktag, customOrganization03 as activity, customOrganization02 as budgetUnit, customOrganization04 as Center FROM customOrganizations WHERE type1 in (a6bbbc0c1916100378779ca119020000,a6bbbc0c191610037820a28c4acf0000,a6bbbc0c1916100378779d3aaff30000) AND workdayID = \\''+ id + '\\'') %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-APP",
+      "name": "getEarnings",
+      "authType": "sso",
+      "url": "<% '/earningGroups' %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getDefaultWorkTags",
+      "exclude": "<% empty(getWorkerData.data[0].positions[0].id) %>",
+      "authType": "laborISUV2",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT costCenter, company, cf_Location1, fund, grant, program, gift FROM indexedPositionsAndJobs_AllStaffingModels WHERE positionAndJob_AllStaffingModels IN (\\'' + getWorkerData.data[0].positions[0].id + '\\')') %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getCostingAllocationWorkday",
+      "authType": "laborISUV2",
+      "httpMethod": "GET",
+      "exclude": "<% empty(getWorkerData.data[0].worker.id) %>",
+      "url": "<%
+              return '/getCostingAllocations/launch?workerID=' + getWorkerData.data[0].worker.id;
+
+      %>"
+    }
+  ],
+  "include": [
+    "Validation.script",
+    "Mapping.script",
+    "Queries.script",
+    "GridScripts.script"
+  ],
+  "script": "<%
+
+    var getDefaultWorktagsScript = function(defaultEndpoint){
+        var endpoint = defaultEndpoint.data[0] ?? {:};
+        var costCenter = endpoint.costCenter[0] ?? {:};
+        var company = endpoint.company ?? {:};
+        var location = endpoint.cf_Location1 ?? {:};
+        var fund = endpoint.fund[0] ?? {:};
+        var grant = endpoint.grant[0] ?? {:};
+        var program = endpoint.program[0] ?? {:};
+        var gift = endpoint.gift[0] ?? {:};
+        return list:nonNull(list:toListIncludeNull(costCenter, company, location, fund, grant, program, gift));
+
+    }
+
+     var getDefaultPayload = function(rows, columns){
+         var counter = 0;
+         var defaultPayload = {'WorkTags': 'Remaining'};
+         for (var y : columns){
+             var periodStartDate = y.periodStartDate ?? '';
+             var periodMap = {:};
+             var periodEndDate = y.periodEndDate ?? '';
+             var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+             var periodSum = 0;
+             for(var x : rows){
+                 var value = x.get(dateFormatted);
+                 if(string:isString(value)){
+                  
+                    value =  value.toDecimal();
+                 }
+
+                 periodSum = ((value ?? '') + periodSum);
+             }
+
+             var defaultAllocation =  number:toBigDecimal((100 - periodSum), 2, 'CEILING');
+             var defaultAllocationString = '';
+             if((defaultAllocation > 0) || (defaultAllocation < 0)){
+              defaultAllocationString = 'Error: ' + (defaultAllocation ?? 0);
+             }else{
+              defaultAllocationString = defaultAllocation ?? '';
+             }
+             periodMap = json:create(json:attribute(dateFormatted, defaultAllocationString));
+             defaultPayload.addAll(periodMap);
+         }
+         return defaultPayload;
+     }
+     var getPercentageData = function(gridData, gridColumns){
+         var grid = gridData ?? [];
+         var gridData = [];
+         for (var x : grid){
+            var worktags = [];
+            var otherWT = '';
+            if(!empty(x.gift.id)){
+                otherWT = (otherWT + x.gift.descriptor + '\\n');
+            }
+            if(!empty(x.project.id)){
+                otherWT = (otherWT + x.project.descriptor + '\\n');
+            }
+            if(!empty(x.center.id)){
+              otherWT = (otherWT + x.center.descriptor + '\\n');
+            }
+            if(!empty(x.grant.id)){
+              otherWT = (otherWT + x.grant.id + '\\n');
+            }
+            return otherWT ?? [];
+
+                 var costCenter = x.costCenter.descriptor ?? '';
+                 var fund = x.fund.descriptor ?? '';
+
+                 var budgetUnit = x.budgetUnit.descriptor ?? '';
+                 var activity = x.activityType.descriptor ?? '';
+                 //update worktags based on new data
+                 if(!empty(costCenter)){
+                     worktags.add(costCenter);
+                 }
+                 if(!empty(fund)){
+                     worktags.add(fund);
+                 }
+                 if(!empty(budgetUnit)){
+                     worktags.add(budgetUnit);
+                 }
+                 if(!empty(activity)){
+                     worktags.add(activity);
+                 }
+                 var worktagsJoin = worktags.join('\\n');
+                 var worktagspayload = {'WorkTags': worktagsJoin};
+                 var startDate = (x.startDate ?? '');
+                 var endDate = (x.endDate ?? '');
+                 var percentage = !empty((x.allocationPercent)) ? (x.allocationPercent).toDecimal() : 0;
+                 var indefinite = (x.indefinite ?? false);
+                 var gridRows = {:};
+                 gridRows.addAll(worktagspayload);
+                 var gridColumnSize = !empty(gridColumns)? gridColumns.size() : 0;
+                 var counter = 1;
+                 for (var y : gridColumns){
+                     var periodStartDate = y.periodStartDate ?? '';
+                     var periodMap = {:};
+                     var periodEndDate = y.periodEndDate ?? '';
+                     var numOfDaysInRequest = 0;
+                     var numOfdaysInMonth = 0;
+                     if(indefinite){
+                         if((startDate.between(periodEndDate, 'DAY')>=0)){
+                             var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                             if(counter == 1){
+                                 var firstDayOfMonth = periodEndDate.minusMonths(1);
+                                 firstDayOfMonth = firstDayOfMonth.plusDays(1);
+                                 numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                                 var startDateIsInPeriod = (startDate.format('yyyy-MM') == periodStartDate.format('yyyy-MM'));
+                                 numOfDaysInRequest =  startDateIsInPeriod? number:toBigDecimal(startDate.between(periodEndDate, 'DAY'), 2, 'CEILING') : periodStartDate.between(periodEndDate, 'DAY');
+                             }else{
+                                 numOfDaysInRequest = periodStartDate.between(periodEndDate, 'DAY');
+                                 numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY');
+                             }
+                             var distributionPercentPeriod = number:toBigDecimal((percentage)*(numOfDaysInRequest/numOfdaysInMonth), 0, 'CEILING');
+                             periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+                             counter = counter + 1;
+                         }
+                     }else{
+                         if((startDate.between(periodEndDate, 'DAY')>=0) && (periodStartDate.between(endDate, 'DAY') >=0 )){
+                             var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                                 if((endDate < periodEndDate) && ((counter == 1))){
+                                    numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY');
+                                    numOfDaysInRequest =  startDate.between(endDate, 'DAY');;
+                                 }else if(endDate < periodEndDate){
+                                    numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY');
+                                    var endDateIsInPeriod = (endDate.format('yyyy-MM') == periodEndDate.format('yyyy-MM'));
+                                    numOfDaysInRequest = endDateIsInPeriod ? number:toBigDecimal(periodStartDate.between(endDate, 'DAY'), 2, 'CEILING') :  periodStartDate.between(periodEndDate, 'DAY');;
+                                 }else if((counter == 1)){
+                                    var firstDayOfMonth = periodEndDate.minusMonths(1);
+                                    firstDayOfMonth = firstDayOfMonth.plusDays(1);
+                                    numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                                    var startDateIsInPeriod = (startDate.format('yyyy-MM') == periodStartDate.format('yyyy-MM'));
+                                    numOfDaysInRequest =  startDateIsInPeriod? number:toBigDecimal(startDate.between(periodEndDate, 'DAY'), 2, 'CEILING') : periodStartDate.between(periodEndDate, 'DAY');
+                                 }else{
+                                    numOfDaysInRequest = periodStartDate.between(periodEndDate, 'DAY');
+                                    numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY');
+                                 }
+                                 numOfdaysInMonth = number:toBigDecimal(numOfdaysInMonth, 2, 'CEILING');
+                                var distributionPercentPeriod = number:toBigDecimal((percentage)*(numOfDaysInRequest/numOfdaysInMonth), 0, 'CEILING');
+                                 periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+
+                                 counter = counter + 1;
+                         }else{
+                            var distributionPercentPeriod = 0;
+                            var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                            periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+                         }
+                     }
+                     gridRows.addAll(periodMap);
+                 }
+
+
+                 gridData.add(gridRows);
+         }
+         var default = getDefaultPayload(gridData, gridColumns);
+         gridData.add(default);
+         return gridData;
+     }
+    
+
+   %>",
+  "onLoad": "<%
+  
+    pageVariables.allWorkTags =[];
+    pageVariables.remainingValues = [];
+    pageVariables.hasFuturePendingTransaction = !empty(getFutureCostingAllocation.data);
+    pageVariables.allWorkTags.addAll(getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Center'}) ?? []);
+    pageVariables.allWorkTags.addAll((getGrant.data ?? []));
+    pageVariables.allWorkTags.addAll((getGift.data ?? []));
+    pageVariables.allWorkTags.addAll((getProject.data ?? []));
+    pageVariables.initialAllocationData = Mapping.mapAllocationDataOnLoadApproval((getCostingAllocation ?? []));
+    pageVariables.earningGroupsToSelectFrom = getEarnings.data.map(x=> {{'id': (x.id ?? ''), 'descriptor': (x.descriptor ?? '')}}).removeAll(pageVariables.initialAllocationData.map(x =>{{'id': (x.earningGroup.id ?? ''), 'descriptor': (x.earningGroup.descriptor ?? '')}}));
+    pageVariables.defaultWorktags = getDefaultWorktagsScript(getDefaultWorkTags);
+    pageVariables.gridFunction = GridScripts.getDatesArray(getCostingAllocationRequest.startDate, getCostingAllocationRequest.endDate, 'MONTH', 'Notprompt');
+    pageVariables.dynamicGrid = [];
+    var workTagPayload = {
+      'name': 'WorkTags',
+      'id': 'workTag',
+      'type': 'string',
+      'dataField': 'WorkTags'
+    }
+    pageVariables.dynamicGrid.add(workTagPayload);
+    for (var numCol : pageVariables.gridFunction){
+      var colPayload = {
+        'name': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy'),
+        'id': numCol.id,
+        'type': 'string',
+        'dataField': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy')
+      };
+      pageVariables.dynamicGrid.add(colPayload);
+    }
+  %>",
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "title": {
+      "type": "title",
+      "label": "Assign Costing Allocation"
+    },
+    "standardEditButtonsHidden": true,
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "section",
+          "id": "allocationOverallDetail",
+          "horizontal": true,
+          "children": [
+            {
+              "type": "section",
+              "id": "workerPositionData",
+              "horizontal": false,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "worker",
+                  "label": "Worker",
+                  "enabled": false,
+                  "value": "<% getWorkerData.data[0].worker.descriptor ?? '' %>"
+                },
+                {
+                  "type": "text",
+                  "id": "position",
+                  "label": "Position",
+                  "enabled": false,
+                  "value": "<% getWorkerData.data[0].positions[0].descriptor ?? '' %>"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "id": "allocationRequestData",
+              "horizontal": false,
+              "children": [
+                {
+                  "type": "richText",
+                  "id": "defaultWT",
+                  "label": "Default Worktags",
+                  "enabled": false,
+                  "value": "<% !empty(pageVariables.defaultWorktags)? pageVariables.defaultWorktags.map(x=>{(x.descriptor ?? '')}).join('\\n'): '' %>",
+                  "multiSelect": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "panelList",
+          "id": "loopWorkerAllocation",
+          "label": "Allocations",
+          "doNotRemove": true,
+          "indexVariableName": "indexPanel",
+          "panels": "<%
+                     //if you need to add a data change mapping script since we are getting the first widget with a static variable. not dynamic.
+                     pageVariables.initialAllocationData ?? [];
+                     %>",
+          "panelName": "earningDataValue",
+          "children": [
+            {
+              "type": "richText",
+              "id": "earningGroupList",
+              "label": "Earnings",
+              "enabled": "<%  false %>",
+              "value": "<% (earningDataValue.earningGroup) ?? '' %>"
+            },
+            {
+              "type": "fieldSet",
+              "id": "test",
+              "children": [
+                {
+                  "type": "grid",
+                  "id": "setPercentage",
+                  "rows": "<% earningDataValue.lineData ?? [] %>",
+                  "enabled": "<% pageVariables.requestType != 'View' %>",
+                  "isArrayOutBinding": "false",
+                  "rowVariableName": "row",
+                  "indexVariableName": "i",
+                  "columns": [
+                    {
+                      "type": "column",
+                      "columnId": "colRow",
+                      "id": "rowCol",
+                      "label": "Row",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "indexFieldSet",
+                        "children": [
+                          {
+                            "type": "hidden",
+                            "id": "wid",
+                            "value": "<% row ?? '' %>"
+                          },
+                          {
+                            "type": "number",
+                            "enabled": false,
+                            "id": "rowIndex",
+                            "value": "<% i ?? 0 %>"
+                          },
+                          {
+                            "type": "text",
+                            "enabled": false,
+                            "visible": false,
+                            "id": "workdayID",
+                            "value": "<% row.id ?? '' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colBudgetUnitWorktag",
+                      "id": "budgetUnitWorktagCol",
+                      "label": "Budget Unit",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "budgetUnitWorktagFieldSet",
+                        "children": [
+                          {
+                            "type": "text",
+                            "id": "budgetUnitWorktag",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "_values": "<% getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Budget Unit'}) ?? [] %>",
+                            "value": "<% row.budgetUnit.id ?? '' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colCostCenterWorktag",
+                      "id": "costCenterWorktagCol",
+                      "label": "Cost Center",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "worktagCostCenterWorktag",
+                        "children": [
+                          {
+                            "type": "text",
+                            "id": "CostCenterWorktag",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "_values": "<% getCostCenter.data ?? [] %>",
+                            "value": "<% row.costCenter.descriptor %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colFundWorktag",
+                      "label": "Fund",
+                      "id": "fundWTCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "worktagFundWorktag",
+                        "children": [
+                          {
+                            "type": "text",
+                            "id": "fundWorktag",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "_values": "<% getFunds.data ?? [] %>",
+                            "value": "<% row.fund.descriptor ?? '' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colActivityWorktag",
+                      "label": "Activity",
+                      "id": "activityWorktagCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "ActivityWorktagFieldSet",
+                        "children": [
+                          {
+                            "type": "text",
+                            "id": "activityWorktag",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "_values": "<% getCustomOrganization.data.filter(x =>{x.type1[0].descriptor == 'Activity'}) ?? [] %>",
+                            "value": "<% row.activityType.descriptor ?? '' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colallRemainingWorktag",
+                      "label": "All Worktags",
+                      "id": "allRemainingWorktagCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "allRemainingWorktagSet",
+                        "children": [
+                          {
+                            "type": "richText",
+                            "id": "allRemainingWorktag",
+                            "enabled": false,
+                            "value": "<%
+                              var otherWT = '';
+                              if(!empty(row.gift.id)){
+                                  otherWT = (otherWT + row.gift.descriptor + '\\n');
+                              }
+                              if(!empty(row.project.id)){
+                                 otherWT = (otherWT + row.project.descriptor + '\\n');
+                              }
+                              if(!empty(row.center.id)){
+                                otherWT = (otherWT + row.center.descriptor + '\\n');
+                              }
+                              if(!empty(row.grant.descriptor)){
+                                otherWT = (otherWT + row.grant.descriptor + '\\n');
+                              }
+                              return otherWT ?? [];
+                            %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colStartDate",
+                      "label": "Start Date",
+                      "id": "startDateCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "startDateFieldSet",
+                        "children": [
+                          {
+                            "type": "date",
+                            "id": "startDate",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "required": "<% true %>",
+                            "value": "<% row.startDate ?? '' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colEndDate",
+                      "id": "endDatecol",
+                      "label": "End Date",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "endDateFieldSet",
+                        "children": [
+                          {
+                            "type": "date",
+                            "id": "endDate",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "value": "<% row.endDate ?? '' %>",
+                            "required": "<% !(row.indefinite ?? false) %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colIndefinite",
+                      "label": "Indefinite",
+                      "id": "indefiniteCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "indefiniteFieldSet",
+                        "children": [
+                          {
+                            "type": "text",
+                            "id": "indefinite",
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "value": "<% (row.indefinite ?? false) ? 'Yes' : 'No' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colAmount",
+                      "label": "Amount",
+                      "id": "amountCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "amountFieldSet",
+                        "children": [
+                          {
+                            "type": "hidden",
+                            "id": "totalAmount",
+                            "value": "<% '200' %>"
+                          },
+                          {
+                            "type": "number",
+                            "id": "numberAmount",
+                            "fractionDigits": 2,
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "column",
+                      "columnId": "colPercent",
+                      "label": "Percent",
+                      "id": "percentCol",
+                      "cellTemplate": {
+                        "type": "fieldSet",
+                        "id": "percentFieldSet",
+                        "children": [
+                          {
+                            "type": "number",
+                            "id": "percentAmount",
+                            "fractionDigits": 2,
+                            "enabled": false,
+                            "_enabled": "<% pageVariables.requestType != 'View' %>",
+                            "value": "<% !empty((row.allocationPercent)) ? (row.allocationPercent).toDecimal() : 0 %>"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "id": "viewAllocation",
+                  "enabled": false,
+                  "label": "View Allocation",
+                  "rowVariableName": "row",
+                  "visible": false,
+                  "rows": "<%  [] %>",
+                  "dynamicColumns": {
+                    "type": "dynamicColumns",
+                    "columns": "<%  pageVariables.dynamicGrid ?? [] %>",
+                    "columnVariableName": "aColumn",
+                    "id": "<% aColumn.id %>",
+                    "columnId": "<% aColumn.id %>",
+                    "label": "<% aColumn.name %>",
+                    "templateId": "<% aColumn.type %>",
+                    "attributeName": "<% aColumn.dataField %>"
+                  },
+                  "cellTemplates": [
+                    {
+                      "type": "cellTemplate",
+                      "templateId": "string",
+                      "id": "cellTemplateID",
+                      "template": {
+                        "type": "text"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "hidden",
+                  "id": "onLoadFunction",
+                  "value": "<% 
+                  //viewAllocation.setRows(getPercentageData(earningDataValue.lineData, (pageVariables.gridFunction))) 
+                  %>"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "AssignCostingAllocation_Prompts",
+  "endPoints": [
+    {
+      "name": "getCurrentWorker",
+      "url": "/workers/me",
+      "exclude": "false",
+      "authType": "sso",
+      "baseUrlType": "WORKDAY-COMMON",
+      "bestEffort": true
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getCurrentWorker.id); %>",
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT cf_CF_LRV_WorkerSecurityGroups as securityGroups FROM workersForHCMReporting (dataSourceFilter = allActiveWorkers) WHERE worker IN (\\'' + (getCurrentWorker.id ?? '') + '\\')') %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSecurityofWorker",
+      "authType": "laborISUV2",
+      "url": "<%
+        return '/data?query=' + string:urlEncode('SELECT permissions FROM allDomainSecurityPolicies WHERE ON permissions securityOperation in (Security_Operation_ID=viewModify_secOp) AND securityGroup in (\\'' + (getWorkerData.data[0].securityGroups.map(x =>{x.id ?? ''}).join('\\',\\'') ?? '') + '\\') WHERE permissions is not empty AND domainSecurityPolicy in (\\''+ attrstore.manageCostingSecurity  +'\\')'); 
+      %>"
+    },    	
+     {
+      "baseUrlType": "Workday-WQL",
+      "name": "getFutureWorkerInfo",
+      "comment" : "added by Pasha for future hires case 01/26/2026",
+      "authType": "laborISUV2",      
+      "exclude": "<% empty(((queryParams.workerID ?? routeParams.workerID) ?? '')); %>",
+      "url": "<%  console.info('security getFutureWorkerInfo: ' + json:asJSON('SELECT workdayID, hireDate FROM allWorkers WHERE worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')'));
+      '/data?query=' + string:urlEncode('SELECT workdayID, hireDate FROM allWorkers WHERE worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')')
+      %>"
+    }, 
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getWorkerData1",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(((queryParams.workerID ?? routeParams.workerID) ?? '')) || empty(getFutureWorkerInfo) || empty(getFutureWorkerInfo.data) || empty(getFutureWorkerInfo.data[0].hireDate); %>",
+      "comment" : "below _url added by Pasha for future hires case 01/26/2026",
+      "_url": "<% '/data?query=' + string:urlEncode('SELECT worker, allPositions as positions, cf_XTNDWorkersCompanyReferenceID as workerCompany FROM allWorkers  WHERE workdayID = \\'' + (queryParams.workerID ??  'a1a7bf9553264c0f9ee363aac30f40e4') + '\\'') %>",
+      "url": "<% console.info('security getWorkerData1: ' + json:asJSON('SELECT worker, allPositions{position,effectiveDateForPosition} as positions, cf_XTNDWorkersCompanyReferenceID as workerCompany FROM allWorkers (effectiveAsOfDate = \\'' + (getFutureWorkerInfo.data[0].hireDate) + '\\')  WHERE workdayID in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')'));
+      '/data?query=' + string:urlEncode('SELECT worker, allPositions{position,effectiveDateForPosition} as positions, cf_XTNDWorkersCompanyReferenceID as workerCompany FROM allWorkers (effectiveAsOfDate = \\'' + ((getFutureWorkerInfo.data[0].hireDate) ?? '') + '\\')  WHERE worker in (\\'' + ((queryParams.workerID ?? routeParams.workerID) ?? '') + '\\')') %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "outboundFlowVars",
+        "type": "outboundVariable",
+        "variableScope": "flow",
+        "values": [
+          {
+            "outboundPath": "grid",
+            "value": "<% pageVariables.dynamicGrid %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "position",
+            "value": "<% position.value[0] ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },   
+          {
+           "outboundPath": "positionEffectiveDate",
+          "value": "<% (getWorkerData1.data[0].positions.find(x => (x.position.id ?? '') == (position.value[0] ?? ''))?.effectiveDateForPosition) ?? '' %>"
+          },       
+          {
+            "outboundPath": "positionName",
+            "value": "<% position.selectedEntries[0].descriptor ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "worker",
+            "value": "<% workerObject.value[0] ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "periodDates",
+            "value": "<% pageVariables.gridFunction ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "startDate",
+            "value": "<% startDate.value ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "endDate",
+            "value": "<% endDate.value.add('MONTH',1).minusDays(1) ?? '' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "requestType",
+            "value": "<% 'Edit' %>",
+            "exclude":"<% empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          },
+          {
+            "outboundPath": "Authorized",
+            "value": "<% !empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>"
+          }
+        ]
+      }
+    ]
+  },
+  "onSubmit": "<%
+    pageVariables.gridFunction = GridScripts.getDatesArray(startDate.value, endDate.value, 'MONTH', 'prompt');
+    pageVariables.dynamicGrid = [];
+    var workTagPayload = {
+      'name': 'WorkTags',
+      'id': 'workTag',
+      'type': 'string',
+      'dataField': 'WorkTags'
+    }
+    pageVariables.dynamicGrid.add(workTagPayload);
+    for (var numCol : pageVariables.gridFunction){
+      var colPayload = {
+          'name': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy'),
+          'id': numCol.id,
+          'type': 'string',
+          'dataField': numCol.periodStartDate.format('MMM-dd-yyyy') + ' - ' + numCol.periodEndDate.format('MMM-dd-yyyy')
+      };
+      pageVariables.dynamicGrid.add(colPayload);
+    }
+  %>",
+  "include": [
+    "GridScripts.script"
+  ],
+  "presentation": {
+    "headerSize": "VPS_DEFAULT",
+    "pageType": "edit",
+    "title": {
+      "type": "title",
+      "label": "Costing Allocation Prompt"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "section",
+          "id": "horizontalGrid",
+          "horizontal": true,
+          "render":"<% !empty(getSecurityofWorker) && ((getWorkerData1.data[0].workerCompany ?? '') == '100') %>",
+          "children": [
+            {
+              "type": "section",
+              "id": "workerData",
+              "horizontal": false,
+              "children": [
+                {
+                  "type": "instanceList",
+                  "id": "workerObject",
+                  "label": "Worker",
+                  "enabled": false,
+                  "values": "<% [] %>",
+                  "selectedValuesAndDescriptors": "<% [getWorkerData1.data[0].worker] ?? [] %>"
+                },
+                {
+                  "type": "instanceList",
+                  "id": "position",
+                  "label": "Position",
+                  "required": true,
+                  "enabled": true,
+                  "_selectedValuesAndDescriptors": "<% [getWorkerData1.data[0].positions[0]] ?? [] %>",
+                  "_values": "<% getWorkerData1.data[0].positions ?? [] %>",
+                  "selectedValuesAndDescriptors": "<% !empty(getWorkerData1.data[0].positions) ? [getWorkerData1.data[0].positions[0].position] : [] %>",
+                   "values": "<% !empty(getWorkerData1.data[0].positions) ? getWorkerData1.data[0].positions.map(x => x.position) : [] %>"
+                },
+                {
+                  "type": "fieldSet",
+                  "id": "helpTextDate",
+                  "title": "Date Range for Validation",
+                  "children": [
+                    {
+                      "type": "date",
+                      "id": "startDate",
+                      "label": "Start Date",
+                      "required": true,
+                      "datePrecision": "MONTH",
+                      "value": "<% date:getTodaysDate(date:getDateTimeZone(userTimeZone)) %>",
+                      "onChange": "<%
+                        if(!empty(endDate.value) && !empty(startDate.value)){
+                          if((endDate.value ?? '') < (startDate.value ?? '')){
+                            endDate.setError('End date must be after the start date');
+                          }else{
+                            endDate.clearError();
+                          }
+                        }else{
+                          endDate.clearError();
+                        }
+                      %>"
+                    },
+                    {
+                      "type": "date",
+                      "id": "endDate",
+                      "label": "End Date",
+                      "required": true,
+                      "datePrecision": "MONTH",
+                      "value": "<% date:parse(date:getTodaysDate(date:getDateTimeZone(userTimeZone))).plusMonths(5).toString(); %>",
+                      "onChange": "<%
+                        if(!empty(endDate.value) && !empty(startDate.value)){
+                          if((endDate.value ?? '') < (startDate.value ?? '')){
+                            endDate.setError('End date must be after the start date');
+                          }else{
+                            endDate.clearError();
+                          }
+                        }else{
+                          endDate.clearError();
+                        }
+                      %>"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "id": "dateIncrementsSection",
+              "horizontal": false,
+              "visible": false,
+              "children": [
+                {
+                  "type": "dropdown",
+                  "id": "dateIncrements",
+                  "label": "Date Increments",
+                  "_required": true,
+                  "instanceList": [
+                    {
+                      "id": "DAY",
+                      "descriptor": "Daily"
+                    },
+                    {
+                      "id": "WEEKLY",
+                      "descriptor": "Weekly"
+                    },
+                    {
+                      "id": "BIWEEKLY",
+                      "descriptor": "Bi-Weekly"
+                    },
+                    {
+                      "id": "MONTH",
+                      "descriptor": "Monthly"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "id":"noAuthorized",
+          "render":"<% empty(getSecurityofWorker) %>",
+          "children":[
+            {
+              "type":"text",
+              "value":"You are not Authorized to submit this task"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": 3,
+  "name": "CostingAllocationIntervalTransaction",
+  "label": "Costing Allocation Interval Transaction",
+  "defaultSecurityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "defaultCollection": {
+    "name": "costingAllocationIntervalTransactions",
+    "label": "Costing Allocation Interval Transactions"
+  },
+  "fields": [
+    {
+      "id": 1,
+      "name": "startDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 2,
+      "name": "endDate",
+      "type": "DATE",
+      "isPurgeable": false,
+      "enableIndex": false,
+      "precision": "DAY"
+    },
+    {
+      "id": 3,
+      "name": "costingAllocationLineDetailTransaction",
+      "type": "MULTI_INSTANCE",
+      "isPurgeable": false,
+      "target": "CostingAllocationLineDetailsTransaction"
+    },
+    {
+      "id": 4,
+      "name": "indefinite",
+      "type": "BOOLEAN",
+      "isPurgeable": false,
+      "enableIndex": false
+    },
+    {
+      "id": 5,
+      "name": "costingAllocationEarningRequestTransaction",
+      "label": "Costing Allocation Earning Request Transaction",
+      "type": "SINGLE_INSTANCE",
+      "target": "CostingAllocationEarningRequestTransaction"
+    },
+    {
+      "id": 6,
+      "name": "isCurrentPayPeriod",
+      "type": "BOOLEAN"
+    }
+  ]
+}

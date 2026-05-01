@@ -1,0 +1,163 @@
+{
+  "securityDomains": [
+    "ManageCostingAllocation"
+  ],
+  "id": "ApprovalDashboard",
+  "endPoints": [
+    {
+      "name": "getCurrentWorker",
+      "baseUrlType": "Workday-WQL",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker FROM processingWorker'); %>"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getCostingAllocationTransactions",
+      "authType": "laborISUV2",
+      "exclude": "<% empty(getCurrentWorker.data[0].worker.id) %>",
+      "isCollection" : true,
+      "url": "<% '/data?query=' + string:urlEncode('SELECT CostingAllocationRequestTransaction, status, createdMoment, worker , approver, payPeriodStartDate,approver{worker, approved, Approver} as approvals, worker{cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod} as workerRBO FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE ON approver (approved = false AND worker in (\\'' +  getCurrentWorker.data[0].worker.id +'\\')) WHERE (approver is not empty AND active = false AND status = \\'Pending Approval\\')') %>",
+      "_url": "<% 
+       var limit = pagingVariables.limit ?: 5;
+       var offset = pagingVariables.offset ?: 0;
+      '/data?limit=' + limit + '&offset=' + offset + '&query=' + string:urlEncode('SELECT CostingAllocationRequestTransaction, status, createdMoment, worker , approver, payPeriodStartDate,approver{worker, approved, Approver} as approvals, worker{cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod} as workerRBO FROM labormanagement_v3_gnqwhx_costingAllocationRequestTransactions WHERE ON approver (approved = false AND worker in (\\'' + getCurrentWorker.data[0].worker.id +'\\')) WHERE (approver is not empty AND active = false AND status = \\'Pending Approval\\')') %>"
+    },
+     {
+       "baseUrlType": "Workday-WQL",
+       "name": "getWorkerSeparationDate",
+       "deferred": true,
+       "authType": "laborISUV2",       
+       "url": "<% '/data?query=' + string:urlEncode('SELECT worker, terminationDate FROM allActiveAndTerminatedWorkers WHERE worker IN (\\'' + id + '\\')') %>"
+    },
+   {
+      "baseUrlType": "Workday-WQL",
+      "name": "getSeparatedWorkerData",
+      "deferred": true,
+      "authType": "laborISUV2",      
+      "url": "<% '/data?query=' + string:urlEncode('SELECT worker, cf_CurrentOpenPayPeriod_StartDate as currentPayPeriod, FTE, positionWorkerType as workerType, hireDate FROM allActiveAndTerminatedWorkers(effectiveAsOfDate = \\'' + id1 + '\\') WHERE worker IN (\\'' + id + '\\')') %>"
+   }    
+  ],
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Approval Dashboard"
+    },
+    "pageType": "VIEW",
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+            "type": "button",
+            "label": "View All",
+            "action": "AUXILIARY",
+            "taskReference": {
+              "taskId": "ApprovalDashboard"              
+            }
+        },
+        {
+          "type": "grid",
+          "id": "approvalGrid",
+          "rows": "<% getCostingAllocationTransactions.data ?? [] %>",
+          "doNotAdd": true,
+          "doNotRemove": true,
+          "enabled": false,
+          "isArrayOutBinding": "false",
+          "rowVariableName": "row",       
+          "columns": [
+            {
+              "type": "column",
+              "columnId": "employeeRow",
+              "label": "Employee Name",
+              "cellTemplate": {
+                "type": "instanceList",
+                "enabled": false,
+                "id": "employeeName",
+                "selectedValues": "<% [row.worker ?? ''] %>",
+                "instanceList": [
+                  {
+                    "id": "<% row.worker.id %>",
+                    "descriptor": "<% row.worker.descriptor %>",
+                    "wid": "<% row.worker.id %>"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "dateSubmitted",
+              "label": "Date Submitted",
+              "cellTemplate": {
+                "type": "date",
+                "enabled": false,
+                "id": "dateSubmitted",
+                "value": "<% row.createdMoment %>"
+              }
+            },
+             {
+              "type": "column",
+              "columnId": "payPeriodStartDateCol",
+              "label": "Submitted Pay Period Start Date",
+              "cellTemplate": {
+                "type": "date",
+                "enabled": false,
+                "id": "payPeriodStartDateId",
+                "value": "<% 
+                row.payPeriodStartDate ?? '' %>"
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "payPeriodCurrentCol",
+              "label": "Current Pay Period Start Date",
+              "cellTemplate": {
+                "type": "date",
+                "enabled": false,
+                "id": "CurrentpayPeriodStartDateId",
+                "value": "<% 
+                var getSeparationDate = getWorkerSeparationDate.invoke({'id': row.worker.id });
+                var currentPayPeriod ='';                
+                 if(!empty(getSeparationDate.data[0].terminationDate)){
+                   var getTerminationDate = (getSeparationDate.data[0].terminationDate);                   
+                   currentPayPeriod = getSeparatedWorkerData.invoke({'id1': getTerminationDate,'id': row.worker.id });
+                 } 
+                 row.workerRBO.currentPayPeriod ?? currentPayPeriod.data[0].currentPayPeriod ?? '' %>"
+              }
+            },      
+            {
+              "type": "column",
+              "columnId": "overdueCol",
+              "label": "Require Send Back",
+              "cellTemplate": {
+                "type": "text",
+                "enabled": false,
+                "id": "overDue",
+                "value": "<% (!empty(row.payPeriodStartDate) && !empty(row.workerRBO.currentPayPeriod)) ?( row.workerRBO.currentPayPeriod > row.payPeriodStartDate ? 'Yes' : 'No') : 'No' %>"
+                
+              }
+            },
+            {
+              "type": "column",
+              "columnId": "approvalCol",
+              "label": "Approve",
+              "cellTemplate": {
+                "type": "button",
+                "id": "approveButton",
+                "action": "PRIMARY",
+                "label": "<% 'Review' %>",
+                "taskReference": {
+                  "taskId": "CostingAllocationLineDataApproval",
+                  "parameterBindings": {
+                    "costingAllocationTransactionID": "<% row.CostingAllocationRequestTransaction.id ?? '' %>",
+                    "approver": "<%
+                      return !empty(row.approvals)? (row.approvals.filter(y => {y.worker.id == getCurrentWorker.data[0].worker.id })[0].Approver.id ?? '') : ''  
+                    %>"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

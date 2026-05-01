@@ -1,0 +1,1268 @@
+script.include("Mapping.script")
+
+var allocationValidation = function(bodyMapped, earningGroup, startDate, endDate, type){
+    var filteredBody =[];
+    //var filteredBody = filteredBody.earnings ?? [];   
+    if(!empty(earningGroup)){
+      if(type == 'sendBack'){
+        filteredBody = bodyMapped.earnings.filter(x =>{(x.earningsList ?? []).contains(earningGroup[0])});
+
+      }else{
+        filteredBody = bodyMapped.earnings.filter(x =>{(x.earningGroup ?? []).contains(earningGroup[0])});
+      }
+    }
+    var intervalValues = filteredBody[0].intervalData ?? [];
+    var error = [];
+    for(var x : intervalValues){       
+        var lineDataDefault = x.lineData ?? [];
+        var startDates = x.startDate ?? '';
+        var endDates = x.endDate ?? '';
+        var indefinite = x.indefinite ?? false;
+        var intervalPercentSum = 0;
+        var intervalDefaultPercentSum = 0;
+            //if sum is greater than 100% then throw error
+        var lineDataMapped = x.lineData.map(y=> {
+          {
+            'gift': y.gift.id ?? '',
+            'grantId': (y.grantId ?? ''),
+            'costCenter': (y.costCenter.id ?? ''),
+            'center': (y.center.id ?? ''),
+            'project': (y.project.id ?? ''),
+            'fund': (y.fund.id ?? ''),
+            'budgetUnit': (y.budgetUnit.id ?? ''),
+            'clinicalAssignment': (y.clinicalAssignment.id ?? ''),
+            'activityType': (y.activityType.id ?? '')
+          }
+        }) ??[];
+        var lineDataSize = lineDataMapped.size();
+        //mapping
+        var distinctLineDataSize = (lineDataMapped.distinct() ?? []).size();
+        if(lineDataSize != distinctLineDataSize){
+          var errorText = 'Worktags Must Be Unique';
+          var errorPayload ={
+            'periodStartDate': startDates ?? '',
+            'periodEndDate': endDates ?? '',
+            'errorText': errorText ?? '',
+            'indefinite': false
+          }
+          error.add(errorPayload);
+        }
+        if((x.sum ?? 0) > 1){
+            if(!indefinite){
+                var errorText = ' periods between ' + startDates.format('MM/dd/yyyy') + ' - ' + endDates.format('MM/dd/yyyy') + ' are above 100% allocation. ';
+                    var errorPayload = {
+                        'periodStartDate': startDates ?? '',
+                        'periodEndDate': endDates ?? '',
+                        'errorText': errorText ?? '',
+                        'indefinite': false
+                    }
+                        error.add(errorPayload);
+
+            }else{
+                var errorText = 'Indefinite data is allocated above 100%, please adjust this period. ';
+                    var errorPayload ={
+                        'periodStartDate': startDates ?? '',
+                        'periodEndDate': endDates ?? '',
+                        'errorText': errorText ?? '',
+                        'indefinite': true
+                    }
+                    error.add(errorPayload);
+            }
+        }
+        //if total sum is higher than 100% then throw error
+        if((x.sum ?? 0) < 1){
+            if(!indefinite){
+                if(x.sum == 0){
+                    var errorText = ' periods between ' + startDates.format('MM/dd/yyyy') +  ' - ' + endDates.format('MM/dd/yyyy') + ' are allocated below 100%, please adjust this period. ';
+                    var errorPayload ={
+                        'periodStartDate': startDates ?? '',
+                        'periodEndDate': endDates ?? '',
+                        'errorText': errorText ?? '',
+                        'indefinite': false,
+                        'sumIsZero': true
+                    }
+                    error.add(errorPayload);
+                }else{
+                    var errorText = ' periods between ' + startDates.format('MM/dd/yyyy') +  ' - ' + endDates.format('MM/dd/yyyy') + ' are allocated below 100%, please adjust this period. ';
+                    var errorPayload ={
+                        'periodStartDate': startDates ?? '',
+                        'periodEndDate': endDates ?? '',
+                        'errorText': errorText ?? '',
+                        'indefinite': false,
+                        'sumIsZero': false
+                    }
+                    error.add(errorPayload);
+                }
+                
+            }else{
+                var errorText = 'Indefinite data is allocated below 100%, please adjust this period. ';
+                var errorPayload ={
+                    'periodStartDate': startDates ?? '',
+                    'periodEndDate': endDates ?? '',
+                    'errorText': errorText ?? '',
+                    'indefinite': true,
+                    'sumIsZero': false
+                }
+                error.add(errorPayload);
+            }
+        }
+        //added by Pasha start date should not less the 28-DEC-2025
+       if((!empty(startDates)) && (!empty(endDates)))
+       {
+           if(((startDates.format('yyyy-MM-dd')) < '2025-12-28' ) ){
+             var errorText = 'For labor costing adjustments prior to 12/28/2025 for non-exempt workers and 1/1/2026 for exempt workers, please submit a Funding Reallocation Form (FRF), located on the Infoscope Workday Training Resources Finance page.';
+             var errorPayload ={
+                  'periodStartDate': startDates ?? '',
+                   'periodEndDate': endDates ?? '',
+                  'errorText': errorText ?? ''
+             }
+              error.add(errorPayload);
+          }   
+       }
+    }
+    var returnPayload = {
+        'errorArray': error ?? []
+    };  
+    return returnPayload ?? {:};
+}
+
+var getAllocationAssignmentWorktags = function(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, startDate, EndDate, payPeriod, earningGroup, workerType, assignAllocationTags, allOtherWorktag, projectAttribute){
+        
+    var costCenterReferenceID = CostCenterWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    var activityReferenceID = activityWorktag.selectedEntries[0].descriptor.substringBefore('-') ?? '';
+    var fundReferenceID = fundWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    var budgetUnitReferenceID = budgetUnitWorktag.selectedEntries[0].descriptor.substringBefore('-') ?? '';
+    var grantReferenceID = grantWorktag.selectedEntries[0].descriptor.substringAfterLast(' ') ?? '';
+    var projectReferenceID = projectWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    var giftReferenceID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Gift:')})[0].substringBefore(' ').substringAfter('Gift:') ?? '';
+    var assignmentAllocationRefID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Assignment Allocation:')})[0].substringBefore('-').substringAfter('Assignment Allocation:') ?? '';
+    var centerRefID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Center:')})[0].substringBefore('-').substringAfter('Center:') ?? '';
+    var refIDArray = [(costCenterReferenceID ?? ''), (activityReferenceID ?? ''),(fundReferenceID ?? ''),(budgetUnitReferenceID ?? ''),(grantReferenceID ?? ''),(projectReferenceID ?? ''),(giftReferenceID ?? ''),(assignmentAllocationRefID ?? ''),(centerRefID ?? '')];
+    if((earningGroup ?? '') == 'Base Salary'){
+      //MCW-14463 , added worker type Faculty - Non Clinical
+        if(((workerType.descriptor ?? '') == 'Faculty - Clinical')  || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical') ){
+            
+             if((activityReferenceID ?? '').contains('20')){
+                if(!empty(projectAttribute)){
+                  if(refIDArray.contains('300.U') || refIDArray.contains('400.U') || refIDArray.contains('700.U')|| refIDArray.contains('706.U')){
+                    var assignAllocation = assignAllocationTags.filter(x =>{x.descriptor.contains(projectAttribute.descriptor)}) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+                    var remainingWortagValueSelected = allRemainingWorktag.value.sort ?? [];
+                    return (allRemainingWorktagAllocation ?? []);
+                  }
+                }
+                if(refIDArray.contains('106.U')){
+                    var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' || (x.descriptor ?? '') == 'Assignment Allocation:VA Support' || (x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+                    var remainingWortagValueSelected = allRemainingWorktag.value.sort ?? [];
+                    return (allRemainingWorktagAllocation ?? []);
+                }
+              
+                if(refIDArray.contains('156.U')){
+                    var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                    var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+
+                    return (allRemainingWorktagAllocation ?? []);
+                }
+                
+                if(refIDArray.contains('164.U')){
+                    var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU_offsite- wRVU Offsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                    var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                    return (allRemainingWorktagAllocation ?? []);
+                }
+                if(refIDArray.contains('350.U')){
+                    var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:VA Support' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                    var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                    return (allRemainingWorktagAllocation ?? []);
+                }                    
+                if(!(refIDArray.contains('350.U') || refIDArray.contains('164.U') || refIDArray.contains('156.U') || refIDArray.contains('106.U'))){
+                    var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                    var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                    var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                   return (allRemainingWorktagAllocation ?? []);
+                }
+              else{
+                //allocation assignment with all other worktags. need to confirm all other worktags funds
+                var assignAllocation = [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                return (allRemainingWorktagAllocation ?? []);
+              }
+            }else{
+              //added by Pasha 01/08 CA001020
+               var assignAllocation = [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+          return (allRemainingWorktagAllocation ?? []);
+            }
+
+            
+        }else if (((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  ){
+          if((activityReferenceID ?? '').contains('20')){
+            if(!empty(projectAttribute)){
+              if(refIDArray.contains('300.U') || refIDArray.contains('400.U') || refIDArray.contains('700.U')|| refIDArray.contains('706.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{x.descriptor.contains(projectAttribute.descriptor)}) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+                var remainingWortagValueSelected = allRemainingWorktag.value.sort ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+              }
+              
+            }
+            if(refIDArray.contains('106.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }
+            if(refIDArray.contains('156.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }
+            if(refIDArray.contains('164.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU_offsite- wRVU Offsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }
+            if(refIDArray.contains('350.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:VA Support' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }
+            if(!(refIDArray.contains('350.U') || refIDArray.contains('164.U') || refIDArray.contains('156.U') || refIDArray.contains('106.U'))){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }
+
+          }else{
+                //allocation assignment with all other worktags. need to confirm all other worktags funds
+                var assignAllocation = [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                return (allRemainingWorktagAllocation ?? []);
+            }      
+        } else{
+          //allocation assignment with all other worktags. need to confirm all other worktags funds
+          var assignAllocation = [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+          return (allRemainingWorktagAllocation ?? []);
+        }  
+    }else if((earningGroup ?? '') == 'Supplemental Pay'){
+      //MCW-14463 , added Faculty - Non Clinical
+        if (((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  || ((workerType.descriptor ?? '') == 'Faculty - Clinical') || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical')){
+            if((activityReferenceID ?? '').contains('20')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+            }else{
+                //allocation assignment with all other worktags. need to confirm all other worktags funds
+                var assignAllocation = [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                return (allRemainingWorktagAllocation ?? []);
+  
+            } 
+        } else{ 
+                //allocation assignment with all other worktags. need to confirm all other worktags funds
+                var assignAllocation = [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                return (allRemainingWorktagAllocation ?? []);
+                
+            } 
+        if( ((workerType.descriptor ?? '') == 'Faculty - No Base Salary Non Clinical') ||((workerType.descriptor ?? '') == 'Faculty - No Base Salary Clinical')) {
+            if((activityReferenceID ?? '').contains('20')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                return (allRemainingWorktagAllocation ?? []);
+                 }
+            //MCW-14463, added Faculty - Non Clinical
+        } else if(!(((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  || ((workerType.descriptor ?? '') == 'Faculty - Clinical') || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical')  )){
+                //allocation assignment with all other worktags. need to confirm all other worktags funds
+                var assignAllocation = [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                return (allRemainingWorktagAllocation ?? []);
+                 } 
+        
+    } else{
+      //allocation assignment with all other worktags. need to confirm all other worktags funds
+      var assignAllocation = [];
+      var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+      return (allRemainingWorktagAllocation ?? []);
+    }  
+
+}
+var validateWorktags = function(indefinite, CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, startDate, EndDate, payPeriod, earningGroup, workerType, assignAllocationTags, allOtherWorktag, projectAttribute, transactionType){
+    CostCenterWorktag.clearError();
+    if(!empty(activityWorktag)){
+      activityWorktag.clearError();
+    }
+    if(!empty(fundWorktag)){
+      fundWorktag.clearError();
+    }
+    if(!empty(budgetUnitWorktag)){
+      budgetUnitWorktag.clearError();
+    }
+    if(!empty(grantWorktag)){
+      grantWorktag.clearError();
+    }
+    if(!empty(projectWorktag)){
+      projectWorktag.clearError();
+    }
+    if(!empty(allRemainingWorktag)){
+      allRemainingWorktag.clearError();
+    }
+    var costCenterReferenceID = CostCenterWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    var activityReferenceID = activityWorktag.selectedEntries[0].descriptor.substringBefore('-') ?? '';
+    var fundReferenceID = fundWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    
+       var validateFund1 =  getFundsWorktagData.invoke({'id':fundReferenceID}) ?? [];
+    var budgetUnitReferenceID = budgetUnitWorktag.selectedEntries[0].descriptor.substringBefore('-') ?? '';
+    var grantReferenceID = grantWorktag.selectedEntries[0].descriptor.substringAfterLast(' ') ?? '';
+    var projectReferenceID = projectWorktag.selectedEntries[0].descriptor.substringBefore(' ') ?? '';
+    var giftReferenceID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Gift:')})[0].substringBefore(' ').substringAfter('Gift:') ?? '';
+    var assignmentAllocationRefID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Assignment Allocation:')})[0].substringBefore('-').substringAfter('Assignment Allocation:') ?? '';
+    var centerRefID = allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Center:')})[0].substringBefore('-').substringAfter('Center:') ?? '';
+  
+    if(!empty(projectWorktag.visible)){
+      projectWorktag.clearError();
+    }
+    if(!empty(grantWorktag.visible)){
+      grantWorktag.clearError();
+    }
+    
+    if(!empty(projectReferenceID)){
+      var projectData = getProjectDeferred.invoke({'id':projectWorktag.value[0] }) ?? [];
+      projectWorktag.clearError();
+
+      //  if((transactionType != 'project') || (transactionType != 'startDate') || (transactionType != 'endDate') || (transactionType != 'indefinite')){
+      //      projectWorktag.setError('You cannot update the related worktags when a project has been selected');
+      //    }
+      if(!empty(projectData.data[0].projectEndDate)){
+        if(!empty(startDate) && !empty(payPeriod)){
+          //projectWorktag.clearError();
+
+          if((projectData.data[0].projectEndDate ?? '') < (startDate.format('yyyy-MM-dd')) ){
+              projectWorktag.setError('The Project ended on ' + date:parse(projectData.data[0].projectEndDate).format('MM/dd/yyyy') + ', Please select another Project');
+          }
+        }
+
+        if( !empty(payPeriod) && !empty(EndDate)){
+         // projectWorktag.clearError();
+          if((projectData.data[0].projectEndDate ?? '') < (EndDate.format('yyyy-MM-dd'))){
+              projectWorktag.setError('The Project ended on ' + date:parse(projectData.data[0].projectEndDate).format('MM/dd/yyyy') + ', Please select another Project');
+          }
+        }
+        if((indefinite.value ?? false)  && !empty(payPeriod)){
+          projectWorktag.setError('The Project ended on ' + date:parse(projectData.data[0].projectEndDate).format('MM/dd/yyyy') + ', Please select another Project');
+        }
+      }
+      if(!empty(projectData.data[0].projectStartDate)){
+        if(!empty(startDate) && !empty(payPeriod)){
+          //projectWorktag.clearError();
+          if((projectData.data[0].projectStartDate ?? '') > (startDate.format('yyyy-MM-dd')) ){
+            projectWorktag.setError('The Project Starts on ' + date:parse(projectData.data[0].projectStartDate).format('MM/dd/yyyy') + ', Please select another Project');
+          }
+        }
+      } 
+     
+    }
+
+
+    if(!empty(grantReferenceID)){
+      
+        var grantData = getGrantDeferred.invoke({'id':grantWorktag.value[0] }) ?? [];
+        grantWorktag.clearError();
+      //  if((transactionType != 'grant') || (transactionType != 'startDate') || (transactionType != 'endDate') || (transactionType != 'indefinite')){
+       //   grantWorktag.setError('You cannot update the related worktags when a grant has been selected');
+       // }
+        
+        //setError commented by Pasha on 11/17 MCW-14508
+        if(!empty(grantData.data[0].effectiveAwardLine.toDate)){
+          if(!empty(startDate) && !empty(payPeriod)){
+
+            if((grantData.data[0].effectiveAwardLine.toDate ?? '') < (startDate.format('yyyy-MM-dd'))){
+
+              //grantWorktag.setError('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+              grantWorktag.setWarning('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+            }
+          }
+          if(!empty(EndDate) && !empty(payPeriod)){
+
+            if(((grantData.data[0].effectiveAwardLine.toDate ?? '') < (EndDate.format('yyyy-MM-dd')))){
+
+              //grantWorktag.setError('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+              grantWorktag.setWarning('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+            }
+          }
+          if((indefinite.value ?? false) && !empty(payPeriod)){
+            //grantWorktag.setError('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+            grantWorktag.setWarning('The Grant Award expired on ' + date:parse(grantData.data[0].effectiveAwardLine.toDate).format('MM/dd/yyyy') + ', Please select another Grant');
+          }
+
+        }
+        
+        
+    }
+
+    
+    //from Maintain Custom Validation tasks. accounting journal section 
+    // requires you 
+    var refIDArray = [(costCenterReferenceID ?? ''), (activityReferenceID ?? ''),(fundReferenceID ?? ''),(budgetUnitReferenceID ?? ''),(grantReferenceID ?? ''),(projectReferenceID ?? ''),(giftReferenceID ?? ''),(assignmentAllocationRefID ?? ''),(centerRefID ?? '')];
+    if(!empty(refIDArray)){
+        if(refIDArray.contains('102.U')){
+           // if(empty(grantWorktag.value[0])){ 
+            // if(empty(grantWorktag.selectedEntries[0])){
+              if(empty(grantReferenceID))              
+              {
+
+              if(!empty(fundWorktag)){
+                fundWorktag.setError('Grant cannot be empty with this Fund');                
+              }
+            }
+        }
+        if(refIDArray.contains('103.U') || refIDArray.contains('119.U')|| refIDArray.contains('123.U')|| refIDArray.contains('131.U')|| refIDArray.contains('156.U')|| refIDArray.contains('164.U')|| refIDArray.contains('168.U')|| refIDArray.contains('300.U')|| refIDArray.contains('350.U')|| refIDArray.contains('400.U')|| refIDArray.contains('700.U')|| refIDArray.contains('706.U')|| refIDArray.contains('772.U')){
+
+            if(empty(projectWorktag.value[0])){
+              if(!empty(fundWorktag)){
+                fundWorktag.setError('Project cannot be empty with this Fund');
+              }
+            }
+        }
+        if(refIDArray.contains('116.U') || refIDArray.contains('117.P')|| refIDArray.contains('117.T')|| refIDArray.contains('117.U')|| refIDArray.contains('118.T')|| refIDArray.contains('118.U')|| refIDArray.contains('150.U')|| refIDArray.contains('150.T')){
+
+            if(empty(allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Gift:')})[0])){
+              if(!empty(fundWorktag)){
+                fundWorktag.setError('Gift cannot be empty with this Fund');
+              }
+            }
+        }
+    }
+
+    // MCW-14463, added Faculty Non-clinical
+    if((earningGroup ?? '') == 'Base Salary'){
+      if(((workerType.descriptor ?? '') == 'Faculty - Clinical') || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical')  ){
+
+          if((activityReferenceID ?? '').contains('20')){
+            if(!empty(projectAttribute)){
+              if(refIDArray.contains('300.U') || refIDArray.contains('400.U') || refIDArray.contains('700.U')|| refIDArray.contains('706.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{x.descriptor.contains(projectAttribute.descriptor)}) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = list:join((allRemainingWorktag.value ?? []), ([]));
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+              }
+            }else if(refIDArray.contains('106.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' || (x.descriptor ?? '') == 'Assignment Allocation:VA Support' || (x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            }else if(refIDArray.contains('156.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            }else if(refIDArray.contains('164.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU_offsite- wRVU Offsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            }else if(refIDArray.contains('350.U')){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:VA Support' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            } 
+           else if(!(refIDArray.contains('350.U') || refIDArray.contains('164.U') || refIDArray.contains('156.U') || refIDArray.contains('106.U'))){
+                var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+                var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+                var remainingWortagValueSelected = list:join((allRemainingWorktag.value ?? []), (!empty(assignAllocation[0].id) ? [assignAllocation[0].id] : []));
+  
+                allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+                allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            }
+        }else{
+          //allocation assignment with all other worktags. need to confirm all other worktags funds
+          var assignAllocation = [];
+          var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+          allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+          allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+  
+        }   
+      }
+      if (((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  ){
+        if((activityReferenceID ?? '').contains('20')){
+          if(!empty(projectAttribute)){
+            if(refIDArray.contains('300.U') || refIDArray.contains('400.U') || refIDArray.contains('700.U')|| refIDArray.contains('706.U')){
+              var assignAllocation = assignAllocationTags.filter(x =>{x.descriptor.contains(projectAttribute.descriptor)}) ?? [];
+              var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+              // var remainingWortagValueSelected = allRemainingWorktag.value.sort ?? []; commented on 10/10 by pasha Issue ID MCW-14186
+               var remainingWortagValueSelected = allRemainingWorktag.value.sort() ?? []; 
+              allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+              allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+            }
+          }else if(refIDArray.contains('106.U')){
+            var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+            var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+  
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+          }else if(refIDArray.contains('156.U')){
+            var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU Onsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+            var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+          }else if(refIDArray.contains('164.U')){
+            var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:wRVU_offsite- wRVU Offsite' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+            var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+          }else if(refIDArray.contains('350.U')){
+            var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:VA Support' ||(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+            var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+          }else if(!(refIDArray.contains('350.U') || refIDArray.contains('164.U') || refIDArray.contains('156.U') || refIDArray.contains('106.U'))){
+            var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+            var remainingWortagValueSelected = list:join((allRemainingWorktag.value ?? []), (!empty(assignAllocation[0].id) ? [assignAllocation[0].id] : []));
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+          }
+
+        }else{
+          //allocation assignment with all other worktags. need to confirm all other worktags funds
+          var assignAllocation = [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+          var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+          allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+          allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+        }      
+      }
+    }else if((earningGroup ?? '') == 'Supplemental Pay'){
+      // MCW-14463 , added Faculty Non-Clinical
+      if (((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  || ((workerType.descriptor ?? '') == 'Faculty - Clinical') || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical')  ){
+        if((activityReferenceID ?? '').contains('20')){          
+          var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+          var remainingWortagValueSelected = list:join((allRemainingWorktag.value ?? []), (!empty(assignAllocation[0].id) ? [assignAllocation[0].id] : []));
+          allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+         // MCW-14224 ; why 3 times Assignment Allocation:Non-wRVU got triggered for remainingWortagValueSelected on calculate button allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+           allRemainingWorktag.setValue(remainingWortagValueSelected.distinct() ?? []);
+        }else{
+            //allocation assignment with all other worktags. need to confirm all other worktags funds
+            var assignAllocation = [];
+            var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+            var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+            allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+            allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+        } 
+      }else{
+          //allocation assignment with all other worktags. need to confirm all other worktags funds
+          var assignAllocation = [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+          var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+          allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+          //allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+      } 
+      if(((workerType.descriptor ?? '') == 'Faculty - No Base Salary Non Clinical') || ((workerType.descriptor ?? '') == 'Faculty - No Base Salary Clinical')){  
+        if((activityReferenceID ?? '').contains('20')){
+          var assignAllocation = assignAllocationTags.filter(x =>{(x.descriptor ?? '') == 'Assignment Allocation:Non-wRVU' }) ?? [];
+          var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];;
+          var remainingWortagValueSelected = list:join((allRemainingWorktag.value ?? []), (!empty(assignAllocation[0].id) ? [assignAllocation[0].id] : []));
+          allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+          allRemainingWorktag.setValue(remainingWortagValueSelected.distinct() ?? []);
+        }
+        // MCW-14463 added Faculty Non-clinical
+      } else if(!(((workerType.descriptor ?? '') == 'Staff Physician - Clinical') || ((workerType.descriptor ?? '') == 'Staff - Clinical')  || ((workerType.descriptor ?? '') == 'Faculty - Clinical') || ((workerType.descriptor ?? '') == 'Faculty - Non Clinical'))){
+        //allocation assignment with all other worktags. need to confirm all other worktags funds
+        var assignAllocation = [];
+        var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+        var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+        allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+        allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+      } 
+        
+    }else{
+      //allocation assignment with all other worktags. need to confirm all other worktags funds
+      var assignAllocation = [];
+      var allRemainingWorktagAllocation = list:join((allOtherWorktag ?? []), (assignAllocation ?? [])).sort() ?? [];
+      var remainingWortagValueSelected = allRemainingWorktag.value ?? [];
+      allRemainingWorktag.setValues(allRemainingWorktagAllocation ?? []);
+      allRemainingWorktag.setValue(remainingWortagValueSelected ?? []);
+    }  
+
+
+}
+var getRelatedWorktags = function(CostCenterWorktag, activityWorktag,fundWorktag, budgetUnitWorktag, grantWorktag, projectWorktag, allRemainingWorktag, relatedWorktags, requestType, selectedValue) {
+
+  var relatedWorktagsValues = relatedWorktags ?? [];
+  
+
+  if(((requestType != 'GIFT') && (requestType != 'Project') && (requestType != 'Grant')) ? (!empty(projectWorktag.value[0]) ? false : (!empty(grantWorktag.value[0]) ? false: (!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Gift'))})) ? false : true))): true){
+    if(requestType != 'CostCenter'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}))){
+        var costCenterValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}) ?? [];
+        CostCenterWorktag.setValue(costCenterValue.map(x=>{x.id}));
+      }else{
+        CostCenterWorktag.setValue([]);
+      }
+    }
+    if(requestType != 'Activity'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Activity'))}))){
+        var activityValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Activity'))}) ?? [];
+        activityWorktag.setValue(activityValue.map(x=>{x.id}));
+      }else{
+        activityWorktag.setValue([]);
+      }
+    }
+    if(requestType != 'Fund'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Fund'))}))){
+        var fundValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Fund'))}) ?? [];
+        fundWorktag.setValue(fundValue.map(x=>{x.id}));
+      }else{
+        fundWorktag.setValue([]);
+      }
+    }
+    if(requestType != 'Budget Unit'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}))){
+        var budgetUnitValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}) ?? [];
+        budgetUnitWorktag.setValue(budgetUnitValue.map(x=>{x.id}));
+      }else{
+        budgetUnitWorktag.setValue([]);
+      }
+    }
+    if(requestType != 'Grant'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Grant'))}))){
+        var grantValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Grant'))}) ?? [];
+        if(!empty(grantWorktag)){
+          grantWorktag.setValue(grantValue.map(x=>{x.id}));
+        }
+      }else{
+        if(!empty(grantWorktag)){
+          grantWorktag.setValue([]);
+        }
+      }
+    }
+    if(requestType != 'Project'){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Project'))}))){
+        var projectValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Project'))}) ?? [];
+        projectWorktag.setValue(projectValue.map(x=>{(x.id ?? '')}));
+      }else{
+        projectWorktag.setValue([]);
+      }
+    }
+    if((requestType != 'Gift') ||  (requestType != 'Center') || (requestType != 'Assignment Allocation')){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Gift')) || (string:contains(y.descriptor, 'Center'))|| (string:contains(y.descriptor, 'Assignment Allocation'))}))){
+        var otherWorktagsValues = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Gift')) || (string:contains(y.descriptor, 'Center'))|| (string:contains(y.descriptor, 'Assignment Allocation'))}) ?? [];
+        if(requestType == 'Gift'){
+          otherWorktagsValues.join(allRemainingWorktag.value.map(t =>{{'id': t ?? ''}}));
+        }
+        allRemainingWorktag.setValue(otherWorktagsValues.map(x=>{x.id}).add(selectedValue));
+      }else{
+        allRemainingWorktag.setValue([]);
+      }
+    }
+  }else{
+    var remainingWT = [];
+    if(empty(CostCenterWorktag.value[0])){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}))){
+        var costCenterValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}) ?? [];
+        CostCenterWorktag.setValue(costCenterValue.map(x=>{x.id}));
+      }else{
+        CostCenterWorktag.setValue([]);
+      }
+    }
+    if(empty(activityWorktag.value[0])){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Activity'))}))){
+        var activityValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Activity'))}) ?? [];
+        activityWorktag.setValue(activityValue.map(x=>{x.id}));
+      }else{
+        activityWorktag.setValue([]);
+      }
+    }
+    if(empty(fundWorktag.value[0])){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Fund'))}))){
+        var fundValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Fund'))}) ?? [];
+        fundWorktag.setValue(fundValue.map(x=>{x.id}));
+      }else{
+        fundWorktag.setValue([]);
+      }
+    }
+    if(empty(budgetUnitWorktag.value[0])){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}))){
+        var budgetUnitValue = relatedWorktagsValues.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}) ?? [];
+        budgetUnitWorktag.setValue(budgetUnitValue.map(x=>{x.id}));
+      }else{
+        budgetUnitWorktag.setValue([]);
+      }
+    }
+    if(empty(allRemainingWorktag.selectedEntries.filter(x =>{x.descriptor.startsWith('Gift:')}))){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor,  'Gift:'))}))){
+        var otherWorktagsValues = relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor, 'Gift:'))}) ?? [];
+        var selectedValueVar = allRemainingWorktag.value ?? [];
+        var joinedValues = list:join(selectedValueVar, otherWorktagsValues.map(x=>{x.id}));
+        remainingWT.add(joinedValues);
+      }
+    }
+    if(empty(allRemainingWorktag.selectedEntries.filter(x =>{x.descriptor.startsWith('Center:')}))){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor, 'Center'))}))){
+        var otherWorktagsValues = relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor, 'Center'))}) ?? [];
+        var selectedValueVar = allRemainingWorktag.selectedEntries.map(t =>{t.id ?? ''}) ?? [];
+        var joinedValues = list:join(selectedValueVar, otherWorktagsValues.map(x=>{x.id}));
+        remainingWT.add(joinedValues);
+      }
+    }
+    if(empty(allRemainingWorktag.selectedEntries.filter(x =>{x.descriptor.startsWith('Assignment Allocation:')}))){
+      if(!empty(relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor,  'Assignment Allocation:'))}))){
+        var otherWorktagsValues = relatedWorktagsValues.filter(y =>{(string:startsWith(y.descriptor, 'Assignment Allocation:'))}) ?? [];
+        var selectedValueVar = allRemainingWorktag.value ?? [];
+        var joinedValues = list:join(selectedValueVar, otherWorktagsValues.map(x=>{x.id}));
+        remainingWT.add(joinedValues);
+      }
+    }
+    allRemainingWorktag.setValue(remainingWT ?? []);
+  }
+}
+var setGridError = function(grid, errorPayload, errorWidget, submitValue){
+  var gridRows = grid ?? [];
+  var errorPayloadMappedIndefinite = errorPayload.errorArray.filter(x =>{((x.indefinite?? false) == true)}).map(x =>{{'startDate': (x.periodStartDate ?? ''), 'endDate': (x.periodEndDate ?? ''), 'errorText': (x.errorText ?? ''), 'indefinite': (x.indefinite ?? false)}}) ?? [];
+  var errorPayloadMappedNotInfinite = errorPayload.errorArray.filter(x =>{((x.indefinite ?? false) == false)}).map(x =>{{'startDate': (x.periodStartDate ?? ''), 'endDate': (x.periodEndDate ?? ''), 'errorText': (x.errorText ?? ''), 'indefinite': (x.indefinite ?? false), 'sumIsZero': (x.sumIsZero ?? false)}}) ?? [];
+  var indefiniteTotal = 0;
+  var hasIndefinite = false;
+  if(empty(gridRows) && submitValue){
+    errorWidget.setError('Please enter values in the grid');
+  }else{
+    errorWidget.clearError();
+  }
+  for(var y : gridRows){
+    var startDateWidget = (y.childrenMap.colStartDate.childrenMap.startDate ?? '');
+    var endDateWidget = (y.childrenMap.colEndDate.childrenMap.endDate ?? '');
+     var percentWidget = (y.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount ?? '');
+     var selectedGrant = ( y.childrenMap.colGrantWorktag.childrenMap.grantWorktag.selectedEntries[0].descriptor ?? '');
+    var selectedProject = (y.childrenMap.colProjectWorktag.childrenMap.projectWorktag.selectedEntries[0].descriptor ?? '');   
+    var selectedGift =  ( y.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.map(t =>{t.descriptor}).filter(x=>{x.contains('Gift:')}) ?? {:});
+   //var selectedGift = [];
+       var fundWorktagWidget = (y.childrenMap.colFundWorktag.childrenMap.fundWorktag ?? '');
+      var mcwFund = (y.childrenMap.colFundWorktag.childrenMap.fundWorktag.value[0] ?? '');
+      var fundWorktagWidgetDescriptor = fundWorktagWidget.selectedEntries[0].descriptor ?? '' ;
+        var validateFund =  getRestrictedFunds.invoke({'id':mcwFund}) ?? [];
+         if(empty(validateFund.data))
+         {            
+            fundWorktagWidget.setError('Fund is Restricted Fund : ' + fundWorktagWidgetDescriptor);
+         }else
+         {
+           fundWorktagWidget.clearError();
+         }
+    
+    if(empty(percentWidget.value ?? ''))
+    {
+      percentWidget.setError('Allocation Percent cannot be less than or equal to 0');
+    }
+    
+        if(fundWorktagWidgetDescriptor.contains('102.U')){
+        if(empty(selectedGrant)) {
+                fundWorktagWidget.setError('Grant cannot be empty with this Fund');                
+              }else{
+                fundWorktagWidget.clearError();
+              }  
+     }
+     if(fundWorktagWidgetDescriptor.contains('103.U') || fundWorktagWidgetDescriptor.contains('119.U')|| fundWorktagWidgetDescriptor.contains('123.U')|| fundWorktagWidgetDescriptor.contains('131.U')|| fundWorktagWidgetDescriptor.contains('156.U')|| fundWorktagWidgetDescriptor.contains('164.U')|| fundWorktagWidgetDescriptor.contains('168.U')|| fundWorktagWidgetDescriptor.contains('300.U')|| fundWorktagWidgetDescriptor.contains('350.U')|| fundWorktagWidgetDescriptor.contains('400.U')|| fundWorktagWidgetDescriptor.contains('700.U')|| fundWorktagWidgetDescriptor.contains('706.U')|| fundWorktagWidgetDescriptor.contains('772.U')){
+      if(empty(selectedProject)){
+                fundWorktagWidget.setError('Project cannot be empty with this Fund');                
+              }else{
+                fundWorktagWidget.clearError();
+              }
+        }
+   if(fundWorktagWidgetDescriptor.contains('116.U') || fundWorktagWidgetDescriptor.contains('117.P')|| fundWorktagWidgetDescriptor.contains('117.T')|| fundWorktagWidgetDescriptor.contains('117.U')|| fundWorktagWidgetDescriptor.contains('118.T')|| fundWorktagWidgetDescriptor.contains('118.U')|| fundWorktagWidgetDescriptor.contains('150.U')|| fundWorktagWidgetDescriptor.contains('150.T')){
+            if(empty(selectedGift)){
+                fundWorktagWidget.setError('Gift cannot be empty with this Fund');                
+              }else{
+                fundWorktagWidget.clearError();
+              }
+        }
+    //}
+   
+      
+    var indefiniteWidget = (y.childrenMap.colIndefinite ?? {:});
+    hasIndefinite = (hasIndefinite == false)? indefiniteWidget.value : true;
+    var errorExists = !(indefiniteWidget.value)? (errorPayloadMappedNotInfinite.filter(x => {(((x.startDate.between(endDateWidget.value, 'DAY') >= 0) || (x.endDate.between(startDateWidget.value, 'DAY')<= 0) ))})).map(x => {x.errorText}) : [];
+     // below line commented by Pasha 02/03 - Chester review pending
+    // var errorExists2 = errorPayloadMappedNotInfinite.filter(t =>{(t.startDate.between(startDateWidget.value, 'DAY') >=0) && (t.endDate.between(startDateWidget.value, 'DAY')<=0)}).map(x => {x.errorText}) ?? [];
+    var errorExistsIndefinite = (indefiniteWidget.value)? (errorPayloadMappedIndefinite ?? []).map(x => {x.errorText}) ?? [] : [];
+     //Pasha modified below errorString  02/03 - Chester review pending
+    var errorString = (!empty(errorExists)?(errorExists.join(', ')): '') +  (!empty(errorExistsIndefinite)?(errorExistsIndefinite.join(', ')): '') ; 
+    //var errorString = (!empty(errorExists)?(errorExists.join(', ')): '') +  (!empty(errorExistsIndefinite)?(errorExistsIndefinite.join(', ')): '') + (!empty(errorExists2)?(errorExists2.join(', ')): '') ;
+    if(!empty(errorString)){
+      startDateWidget.setError(errorString ?? '');
+    }else{
+      startDateWidget.clearError();
+    }
+    if(indefiniteWidget.value){
+      indefiniteTotal= indefiniteTotal + number:toBigDecimal((y.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.value ?? 0), 2, 'CEILING');
+    }
+    
+  }
+  var zeroError = errorPayloadMappedNotInfinite.filter(x => {x.sumIsZero == true}).map(x => {x.errorText});
+  if(!empty(zeroError)){
+    var errorString = (!empty(zeroError)?( zeroError.join(', ')) : '');
+    errorWidget.setError(errorString);
+  }else{
+    errorWidget.clearError();
+  }
+  if(hasIndefinite){
+    var indefiniteWidget = (y.childrenMap.colIndefinite ?? {:});
+    if((indefiniteTotal < 100) || (indefiniteTotal > 100)){
+      indefiniteWidget.setError('Indefinite must add up to 100 %');
+    }else{
+      indefiniteWidget.clearError();
+    }
+  }
+    
+}
+
+var getDefaultPayload = function(rows, columns, startDate, lastDay, flowSartDate){
+  var counter = 0;
+  var startDateBeforePrompt = startDate <= (flowSartDate ?? date:now());
+  var defaultPayload = {'WorkTags': 'Total: '};
+  for (var y : columns){
+    var periodStartDate = y.periodStartDate ?? '';
+    var periodMap = {:};
+    var periodEndDate = y.periodEndDate ?? '';
+    var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+    var periodSum = 0;
+    if(!empty(lastDay)){
+      var lastPeriod = lastDay < periodEndDate;
+    }else{
+      var lastPeriod= false;
+    }
+    var showError = !lastPeriod;
+    //var betweenPeriod = false;
+    if(counter == 0){
+      var showError = !startDateBeforePrompt;
+    }
+    for(var x : rows){
+      var value = x.get(dateFormatted);
+      if(string:isString(value)){
+        var valueDecimal =  value.toDecimal();
+      }else{
+        var valueDecimal =  value;
+      }
+      periodSum = ((valueDecimal ?? 0) + periodSum);
+    }
+    if(periodSum > 100){
+      var defaultAllocation =  number:toBigDecimal((number:toBigDecimal((periodSum), 2, 'DOWN')), 2, 'DOWN');
+    }else{
+      var defaultAllocation =  number:toBigDecimal((number:toBigDecimal((periodSum), 2, 'DOWN')), 2, 'UP');
+    }
+    var defaultAllocationString = '';
+    if((defaultAllocation > 100) || (defaultAllocation < 100)){
+    if(showError){
+      defaultAllocationString = 'Error: ' + (defaultAllocation ?? 0);
+    }else{
+      defaultAllocationString = defaultAllocation ?? '';
+    }
+    }else{
+    defaultAllocationString = defaultAllocation ?? '';
+    }
+    periodMap = json:create(json:attribute(dateFormatted, defaultAllocationString));
+    defaultPayload.addAll(periodMap);
+    counter = counter+1;
+  }
+  return defaultPayload;
+}
+
+
+
+
+var getPercentageData = function(gridData1, gridColumns, flowStartDate){
+    var grid = gridData1 ?? [];
+    var gridPayload = [];
+    var mostStartDate = gridData1.map(l =>{l.childrenMap.colStartDate.childrenMap.startDate.value ?? ''}).sort()[0] ?? '';
+    var mostLastDate = gridData1.map(l =>{l.childrenMap.colStartDate.childrenMap.startDate.value ?? ''}).sort().last() ?? '';
+    for(var x : (gridData1 ?? [])){
+      if(empty(x.childrenMap.colStartDate.childrenMap.startDate.value)){
+        x.childrenMap.colStartDate.childrenMap.startDate.setError('Start Date must have a value');
+        return [];
+      }else{
+        var worktags = x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.map(y =>{y.descriptor}) ?? [];
+        var costCenter = !empty(x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.value[0])? ('Cost Center: '+ (x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.selectedEntries[0].descriptor ?? '')) : '';
+        var fund = !empty(x.childrenMap.colFundWorktag.childrenMap.fundWorktag.value[0])? ('Fund: ' + (x.childrenMap.colFundWorktag.childrenMap.fundWorktag.selectedEntries[0].descriptor ?? '')) : '';
+        var grant = !empty(x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.value[0])? ('Grant: ' + (x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.selectedEntries[0].descriptor ?? '')) : '';
+        var project = !empty(x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.value[0])? ('Project: ' + (x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.selectedEntries[0].descriptor ?? '')) : '';
+        var budgetUnit = !empty(x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.value[0])? ('Budget unit: ' + (x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.selectedEntries[0].descriptor ?? '')) : '';
+        var activity = !empty(x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.value[0])? ('Activity: ' + (x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.selectedEntries[0].descriptor ?? '')): '';
+        //update worktags based on new data
+        if(!empty(costCenter)){
+            worktags.add(costCenter);
+        }
+        if(!empty(fund)){
+            worktags.add(fund);
+        }
+        if(!empty(budgetUnit)){
+            worktags.add(budgetUnit);
+        }
+        if(!empty(activity)){
+            worktags.add(activity);
+        }
+        if(!empty(project)){
+            worktags.add(project);
+        }
+        if(!empty(grant)){
+            worktags.add(grant);
+        }
+        var worktagsJoin = worktags.join('\n');
+        var worktagspayload = {'WorkTags': worktagsJoin};
+        var startDate = (x.childrenMap.colStartDate.childrenMap.startDate.value ?? '');
+        var endDate = (x.childrenMap.colEndDate.childrenMap.endDate.value ?? '');
+        var percentage = number:toBigDecimal((x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.value ?? 0), 2, 'HALF_EVEN');
+        var indefinite = (x.childrenMap.colIndefinite.value ?? false);
+        var gridRows = {:};
+        gridRows.addAll(worktagspayload);
+        var gridColumnSize = !empty(gridColumns)? gridColumns.size() : 0;
+        var counter = 1;
+        for (var y : gridColumns){
+            var periodStartDate = y.periodStartDate ?? '';
+            var periodMap = {:};
+            var periodEndDate = y.periodEndDate ?? '';
+            var numOfDaysInRequest = 0;
+            //var lastPeriod = mostLastDate < periodEndDate;
+            var numOfdaysInMonth = 0;
+            if(indefinite){
+              if((startDate.between(periodEndDate, 'DAY')>=0)){
+                var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                if(counter == 1){
+                  var firstDayOfMonth = periodStartDate;
+                  firstDayOfMonth = firstDayOfMonth.minusDays(1);
+                  numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                  var startDateIsInPeriod = (startDate.format('yyyy-MM') == periodStartDate.format('yyyy-MM'));
+                  if(startDate.between(periodStartDate, 'DAY') >  0){
+                    numOfDaysInRequest =  startDateIsInPeriod? number:toBigDecimal((periodStartDate.between(periodEndDate, 'DAY') +1), 2, 'CEILING') : periodStartDate.between(periodEndDate, 'DAY');
+                    numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY'); 
+                  }else{
+                    numOfDaysInRequest =  startDateIsInPeriod? number:toBigDecimal((startDate.between(periodEndDate, 'DAY') +1), 2, 'CEILING') : periodStartDate.between(periodEndDate, 'DAY');
+                  }
+                }else{
+                  numOfDaysInRequest = periodStartDate.between(periodEndDate, 'DAY');
+                  numOfdaysInMonth = periodStartDate.between(periodEndDate, 'DAY');
+                }
+                var distributionPercentPeriod = number:toBigDecimal((percentage)*(numOfDaysInRequest/numOfdaysInMonth), 2, 'CEILING');
+                periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+                counter = counter + 1;
+              }else{
+                var distributionPercentPeriod = 0;
+                var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+              }
+            }else{
+              if((startDate.between(periodEndDate, 'DAY')>=0) && (periodStartDate.between(endDate, 'DAY') > 0 )){
+                var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                if((periodStartDate.between(startDate, 'DAY')>=0) && (endDate.between(periodEndDate, 'DAY') >=0 )){
+                  //var firstDayOfMonth = periodEndDate.minusMonths(1);
+                  var firstDayOfMonth = periodStartDate;
+                  firstDayOfMonth = firstDayOfMonth.minusDays(1);
+                  numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                  numOfDaysInRequest =   number:toBigDecimal((startDate.between(endDate, 'DAY') + 1), 2, 'HALF_EVEN');
+                }else if(endDate.between(periodEndDate, 'DAY') >= 0 ){
+                  var firstDayOfMonth = periodStartDate;
+                  firstDayOfMonth = firstDayOfMonth.minusDays(1);
+                  numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                  numOfDaysInRequest =  number:toBigDecimal((periodStartDate.between(endDate, 'DAY') + 1), 2, 'HALF_EVEN');
+                }else if((periodStartDate.between(startDate, 'DAY') >= 0) ){
+                  var firstDayOfMonth = periodStartDate;
+                  firstDayOfMonth = firstDayOfMonth.minusDays(1);
+                  numOfdaysInMonth = firstDayOfMonth.between(periodEndDate, 'DAY');
+                  numOfDaysInRequest =  number:toBigDecimal((startDate.between(periodEndDate, 'DAY') + 1), 2, 'HALF_EVEN');
+                }else{
+                  numOfDaysInRequest = 1;
+                  numOfdaysInMonth = 1;
+                }
+                numOfdaysInMonth = number:toBigDecimal(numOfdaysInMonth, 2, 'HALF_EVEN');
+                var distributionPercentPeriod = number:toBigDecimal((percentage)*(numOfDaysInRequest/numOfdaysInMonth), 2, 'HALF_EVEN');
+                periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+                counter = counter + 1;
+              }else{
+                var distributionPercentPeriod = 0;
+                var dateFormatted = periodStartDate.format('MMM-dd-yyyy') + ' - ' + periodEndDate.format('MMM-dd-yyyy');
+                periodMap = json:create(json:attribute(dateFormatted, distributionPercentPeriod));
+              }
+            }
+            gridRows.addAll(periodMap);
+        }
+        gridPayload.add(gridRows);
+      }
+    }
+    var default = getDefaultPayload(gridPayload, gridColumns, mostStartDate, (mostLastDate ?? ''), flowStartDate);
+    gridPayload.add(default);
+    return gridPayload;
+}
+
+
+
+
+var setPanelValues = function(panels, earningsToSelectFrom){
+  var panelsValue = panels.getPanels() ?? [];
+  var earningsToChooseFromUpdated = earningsToSelectFrom.size() == panelsValue.size();
+  var counter = 0;
+  var earningsOnPage = [];
+  var earningsToSelectFromValue= earningsToSelectFrom.map(x =>{{
+    'id': (x.id ?? ''),
+    'descriptor' : (x.descriptor ?? '')
+  }}) ?? [];
+  for(var x : panelsValue){
+    if(!empty(x.children[1].childrenMap.earningGroupList.value)){
+      x.children[1].childrenMap.earningGroupList.setValues(x.children[1].childrenMap.earningGroupList.selectedEntries);
+      x.children[1].childrenMap.earningGroupList.setValue([x.children[1].childrenMap.earningGroupList.selectedEntries[0].id]);
+    }
+    earningsOnPage.add(((!empty(x.children[1].childrenMap.individualEarnings.selectedEntries ?? []))? (x.children[1].childrenMap.individualEarnings.selectedEntries ?? []) : (x.children[1].childrenMap.earningGroupList.selectedEntries ?? [])));
+    x.children[4].setValue(counter);
+    earningsToSelectFromValue = earningsToSelectFromValue.removeAll(list:flatten(earningsOnPage ?? []));
+    counter = counter + 1;
+    if(empty(x.children[1].childrenMap.earningGroupList.value)){
+      x.children[1].childrenMap.earningGroupList.setValues(earningsToSelectFromValue);
+    }
+  }
+  if(empty(earningsToSelectFromValue)){
+    panels.setDoNotAdd(true);
+  }else{
+    panels.setDoNotAdd(false);
+  }
+  return (earningsToSelectFromValue ?? []);
+}
+
+var updateGridEnabled = function(gridIsEnabled, setPercentage){
+  var isUpdated = false;
+  for(var x : (setPercentage.children ?? [])){
+    if(!isUpdated){
+      isUpdated = Mapping.getUpdated(x);
+    }
+    if(!empty(x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.value[0])){
+      var worktags = getWorktags.invoke({'taggableType': 'GRANT', 'worktag': x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.value[0], 'taggableTypes': ['GRANT']}) ?? [];
+      var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+      x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colAmount.setEnabled(gridIsEnabled);
+      x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.setEnabled(false);
+      x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.setEnabled(gridIsEnabled);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Activity'))}) ?? [])){
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(false);
+      }
+      if(!gridIsEnabled){
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(false);
+      }else{
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(false);
+      }
+      x.childrenMap.colStartDate.childrenMap.startDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colComment.setEnabled(gridIsEnabled);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Fund'))}) ?? [])){
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}) ?? [])){
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}) ?? [])){
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(false);
+      }
+      x.childrenMap.colIndefinite.setEnabled(false);
+      x.childrenMap.colIndefinite.setValue(false);
+      x.childrenMap.colEndDate.childrenMap.endDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colEndDate.childrenMap.endDate.setVisible(true);
+    }else if(!empty(x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.value[0])){
+      var worktags = getWorktags.invoke({'taggableType': 'PROJECT', 'worktag': x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.value[0], 'taggableTypes': ['PROJECT']}) ?? [];
+      var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+      x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colAmount.setEnabled(gridIsEnabled);
+      x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.setEnabled(false);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Activity'))}) ?? [])){
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(false);
+      }
+      if(!gridIsEnabled){
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(false);
+      }else{
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(false);
+      }
+      x.childrenMap.colStartDate.childrenMap.startDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colComment.setEnabled(gridIsEnabled);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Fund'))}) ?? [])){
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}) ?? [])){
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}) ?? [])){
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(false);
+      }
+      x.childrenMap.colIndefinite.setEnabled(false);
+      x.childrenMap.colIndefinite.setValue(false);
+      x.childrenMap.colEndDate.childrenMap.endDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colEndDate.childrenMap.endDate.setVisible(true);
+    }else if(!empty(x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Gift'})[0].id ?? '')){
+      //var worktags = getWorktags.invoke({'taggableType': 'GIFT', 'worktag': x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.value[0], 'taggableTypes': ['GIFT']}) ?? []; commented by Pasha 10/10
+      var worktags = getWorktags.invoke({'taggableType': 'GIFT', 'worktag': x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.selectedEntries.filter(y =>{y.descriptor.split(':')[0] == 'Gift'})[0].id, 'taggableTypes': ['GIFT']}) ?? [];
+      var relatedWorktags = worktags.data[0].relatedWorktagsForOperationalTransactionType ?? [];
+      x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colAmount.setEnabled(gridIsEnabled);
+      x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.setEnabled(false);
+      x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.setEnabled(false);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Activity'))}) ?? [])){
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(false);
+      }
+      if(!gridIsEnabled){
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(false);
+      }else{
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(false);
+      }
+      x.childrenMap.colStartDate.childrenMap.startDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colComment.setEnabled(gridIsEnabled);
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Fund'))}) ?? [])){
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Cost Center'))}) ?? [])){
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(false);
+      }
+      if(empty(relatedWorktags.filter(y =>{(string:contains(y.descriptor, 'Budget Unit'))}) ?? [])){
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(true);
+      }else{
+        x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(false);
+      }
+      x.childrenMap.colIndefinite.setEnabled(false);
+      x.childrenMap.colIndefinite.setValue(false);
+      x.childrenMap.colEndDate.childrenMap.endDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colEndDate.childrenMap.endDate.setVisible(true);
+    }else{
+      x.childrenMap.colallRemainingWorktag.childrenMap.allRemainingWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colAmount.setEnabled(gridIsEnabled);
+      x.childrenMap.colProjectWorktag.childrenMap.projectWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colGrantWorktag.childrenMap.grantWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colActivityWorktag.childrenMap.activityWorktag.setEnabled(gridIsEnabled);
+      if(!gridIsEnabled){
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(false);
+      }else{
+        x.childrenMap.colPercent.childrenMap.percentAmountSection.childrenMap.percentAmount.setVisible(true);
+        x.childrenMap.colPercent.childrenMap.percentTextSection.childrenMap.percentText.setVisible(false);
+      }
+      x.childrenMap.colStartDate.childrenMap.startDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colComment.setEnabled(gridIsEnabled);
+      x.childrenMap.colFundWorktag.childrenMap.fundWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colCostCenterWorktag.childrenMap.CostCenterWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colBudgetUnitWorktag.childrenMap.budgetUnitWorktag.setEnabled(gridIsEnabled);
+      x.childrenMap.colIndefinite.setEnabled(gridIsEnabled);
+      x.childrenMap.colEndDate.childrenMap.endDate.setEnabled(gridIsEnabled);
+      x.childrenMap.colEndDate.childrenMap.endDate.setVisible(!(x.childrenMap.colIndefinite.value));
+    }
+  }
+}
+
+
+var validateGridOnAdd = function(setPercentage){
+  var gridIsEnabled = !setPercentage.getDoNotAdd();
+  var counter = 1;
+  for(var x : (setPercentage.children ?? [])){
+    
+    x.childrenMap.colRow.setValue(counter);
+    counter = counter + 1; 
+  }
+}
+ 
+var convertStringToCurrency = function(valu){
+  let tempNumber = number:toBigDecimal(valu,2,'HALF_DOWN') ?? '0';
+  let tempString = string:toString(tempNumber);  
+	tempString = regex:replace(tempString, '\\B(?=(\\d{3})+(?!\\d))',',');
+  return tempString;
+}
+
+var SOCAwardExpirationValidation = function(endDate, grantWorktag, salaryCapValue,fte,totalAmount,earningGroupDescriptor){
+  if (!empty(endDate.value) && !empty(grantWorktag.value[0] ?? [])){
+    var grantData = getGrantDeferred.invoke({'id':grantWorktag.value[0] }).data[0] ?? {:};
+    if(!empty(grantData.effectiveAwardLine.toDate ?? '')){
+      var awardLineEndDate = grantData.effectiveAwardLine.toDate;
+      if (awardLineEndDate < endDate.value.format('yyyy-MM-dd')){
+        salaryCapValue.setValue((0));
+      }  
+      else{
+        //code
+         if(earningGroupDescriptor == 'Base Salary'){
+         // var grantData = getGrantDeferred.invoke({'id':grantWorktag.value[0] }) ?? [];
+         //var grantData = getGrantDeferred.invoke({'id': (row.grant.id ?? '')}).data[0] ?? {:};        
+         if(!empty(grantData.effectiveAwardLine.awardLineSalaryCap.id)){
+          var salaryCapBody = getSalaryOverCap.invoke({'salaryCapID': (grantData.effectiveAwardLine.awardLineSalaryCap.id ?? '')});                  
+            var awardLineSalaryCapOverrideID = grantData.effectiveAwardLine.awardLineSalaryCapOverride.id ?? '';          
+            salaryCapBody = Mapping.getSalaryOverTheCap(salaryCapBody,awardLineSalaryCapOverrideID) ?? {:};  
+            if(!empty(salaryCapBody)){
+              var salaryAmount = salaryCapBody.amount ?? 0;
+              var amountSalaryOverCap = ((totalAmount.value ?? 0) - (salaryAmount * (fte ?? 1.0)));
+              if(amountSalaryOverCap > 0){
+                var ConvSOCValye = number:toBigDecimal((amountSalaryOverCap ?? 0), 2, 'HALF_DOWN');
+              //  salaryCapValue.setValue((ConvSOCValye)); commented to byPass SOC
+                 salaryCapValue.setValue((0));
+              }else{
+                salaryCapValue.setValue((0));
+              }
+            }
+        } else {
+			  salaryCapValue.setValue((0));
+		}   
+       }
+	}
+  }
+  }
+  }
+
+
+{
+    "allocationValidation": allocationValidation,
+    "validateWorktags": validateWorktags,
+    "getRelatedWorktags": getRelatedWorktags,
+    "getAllocationAssignmentWorktags": getAllocationAssignmentWorktags,
+    "getPercentageData": getPercentageData,
+    "setGridError": setGridError,
+    "getDefaultPayload": getDefaultPayload,
+    "setPanelValues": setPanelValues,
+    "updateGridEnabled": updateGridEnabled,
+    "validateGridOnAdd": validateGridOnAdd,
+    "convertStringToCurrency": convertStringToCurrency,
+    "SOCAwardExpirationValidation": SOCAwardExpirationValidation
+}

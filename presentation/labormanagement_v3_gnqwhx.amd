@@ -1,0 +1,519 @@
+{
+  "appProperties": [],
+  "flowDefinitions": [
+    {
+      "id": "SearchWorkerCostingAllocations",
+      "flowSteps": [
+        {
+          "id": "searchOrganization",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "SelectWorker",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "SearchWorkerByOrganization"
+        },
+        {
+          "id": "SelectWorker",
+          "endsFlow": true,
+          "taskId": "SelectWorkers"
+        }
+      ]
+    },
+    {
+      "id": "SearchWorkerCostingAllocations-View",
+      "flowSteps": [
+        {
+          "id": "searchOrganizationView",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "SelectWorkerView",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "ViewSearchWorkerByOrganization"
+        },
+        {
+          "id": "SelectWorkerView",
+          "endsFlow": true,
+          "taskId": "ViewSelectWorker"
+        }
+      ]
+    },
+    {
+      "id": "earningAdminPageFlow",
+      "flowSteps": [
+        {
+          "id": "earningGroupAdmin",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusionEarningAdmin",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "EarningGroupAdminPage"
+        },
+        {
+          "id": "conclusionEarningAdmin",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+    {
+      "id": "AssignCostingAllocationFlow",
+      "flowSteps": [
+        {
+          "id": "promptUser",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "AssignCostingAllocation",
+              "condition": "<%  (flowVariables.Authorized == true)  %>"
+            },
+            {
+              "order": "b",
+              "value": "conclusion",
+              "condition": "<%  (flowVariables.Authorized != true)  %>"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "AssignCostingAllocation_Prompts"
+        },
+        {
+          "id": "AssignCostingAllocation",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion",
+              "condition": "<%  !empty(flowVariables.salaryCap)  %>"
+            },
+            {
+              "order": "b",
+              "value": "conclusion",
+              "condition": "<%  empty(flowVariables.salaryCap)   %>"
+            }
+          ],
+          "taskId": "AssignCostingAllocationCreateEdit"
+        },
+        {
+          "id": "salaryOverCap1",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "SalaryOverTheCap"
+        },
+        {
+          "id": "conclusion",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+    {
+      "id": "sendBackostingAllocationFlow",
+      "flowSteps": [
+        {
+          "id": "AssignCostingAllocation1",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion",
+              "condition": "<% !empty(flowVariables.salaryCap) %>"
+            },
+            {
+              "order": "b",
+              "value": "conclusion",
+              "condition": "<% empty(flowVariables.salaryCap)  %>"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "CostingAllocationSendBack"
+        },
+        {
+          "id": "salaryOverCap",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "SalaryOverTheCap"
+        },
+        {
+          "id": "conclusion1",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+     {
+      "id": "sendBackostingAllocationToPreparerFlow",
+      "flowSteps": [
+        {
+          "id": "AssignCostingAllocation2",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion",
+              "condition": "<% !empty(flowVariables.salaryCap) %>"
+            },
+            {
+              "order": "b",
+              "value": "conclusion",
+              "condition": "<% empty(flowVariables.salaryCap)  %>"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "CostingAllocationSendBackToPreparerAction"
+        },
+        {
+          "id": "salaryOverCap2",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusion2",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "SalaryOverTheCap"
+        },
+        {
+          "id": "conclusion2",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+    {
+      "id": "AssignCostingAllocationBPFlow",
+      "flowSteps": [
+        {
+          "id": "promptUserBP",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "AssignCostingAllocationBP",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "ParentActionAssignCostingAllocationprompt"
+        },
+        {
+          "id": "AssignCostingAllocationBP",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "BPconclusion",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "AssignCostingAllocationCreateEdit"
+        },
+        {
+          "id": "BPconclusion",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+    {
+      "id": "viewCostingAllocationFlow",
+      "flowSteps": [
+        {
+          "id": "viewPrompt",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "viewCostingAllocation",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "ViewCostingAllocationPrompt"
+        },
+        {
+          "id": "viewCostingAllocation",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusionView",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "ViewCostingAllocation"
+        },
+        {
+          "id": "conclusionView",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    },
+    {
+      "id": "approveCostingAllocationFlow",
+      "flowSteps": [
+        {
+          "id": "approvalDashboardFlow",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "lineDataApprovalPage",
+              "condition": "true"
+            }
+          ],
+          "startsFlow": true,
+          "taskId": "ApprovalDashboard"
+        },
+        {
+          "id": "lineDataApprovalPage",
+          "transitions": [
+            {
+              "order": "a",
+              "value": "conclusionApproval",
+              "condition": "<% true %>"
+            }
+          ],
+          "taskId": "CostingAllocationLineDataApproval"
+        },
+        {
+          "id": "conclusionApproval",
+          "endsFlow": true,
+          "taskId": "microConclusionPage"
+        }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "root",
+      "routingPattern": "/",
+      "page": {
+        "id": "home"
+      }
+    },
+    {
+      "id": "CostingAllocationApproval",
+      "routingPattern": "/CostingAllocationApproval/{eventId}",
+      "page": {
+        "id": "CostingAllocationApproval"
+      }
+    },
+    {
+      "id": "CostingAllocationSendBack",
+      "routingPattern": "/CostingAllocationSendBack/{eventStepId}",
+      "page": {
+        "id": "CostingAllocationSendBack"
+      }
+    },
+    {
+      "id": "CostingAllocationDetails",
+      "routingPattern": "/CostingAllocationDetails/{eventId}",
+      "page": {
+        "id": "CostingAllocationDetails"
+      }
+    },
+    {
+      "id": "AssignCostingAllocation_Prompts",
+      "routingPattern": "AssignCostingAllocation_Prompts",
+      "page": {
+        "id": "AssignCostingAllocation_Prompts"
+      }
+    },
+    {
+      "id": "AssignCostingAllocationCreateEdit",
+      "routingPattern": "AssignCostingAllocationCreateEdit",
+      "page": {
+        "id": "AssignCostingAllocationCreateEdit"
+      }
+    },
+    {
+      "id": "microConclusionPage",
+      "routingPattern": "microConclusionPage",
+      "page": {
+        "id": "microConclusionPage"
+      }
+    },
+    {
+      "id": "ViewCostingAllocationPrompt",
+      "routingPattern": "ViewCostingAllocationPrompt",
+      "page": {
+        "id": "ViewCostingAllocationPrompt"
+      }
+    },
+    {
+      "id": "ViewCostingAllocation",
+      "routingPattern": "ViewCostingAllocation",
+      "page": {
+        "id": "ViewCostingAllocation"
+      }
+    },
+    {
+      "id": "EarningGroupAdminPage",
+      "routingPattern": "/EarningGroupAdminPage",
+      "page": {
+        "id": "EarningGroupAdminPage"
+      }
+    },
+    {
+      "id": "CreateEarningsObject",
+      "routingPattern": "/CreateEarningsObject",
+      "page": {
+        "id": "CreateEarningsObject"
+      }
+    },
+    {
+      "id": "conclustionTestPage",
+      "routingPattern": "/conclustionTestPage",
+      "page": {
+        "id": "conclustionTestPage"
+      }
+    },
+    {
+      "id": "SearchWorkerByOrganization",
+      "routingPattern": "/SearchWorkerByOrganization",
+      "page": {
+        "id": "SearchWorkerByOrganization"
+      }
+    },
+    {
+      "id": "SelectWorkers",
+      "routingPattern": "/SelectWorkers",
+      "page": {
+        "id": "SelectWorkers"
+      }
+    },
+    {
+      "id": "workerProfileCostingAllocation",
+      "_routingPattern": "/workerProfileCostingAllocation",
+      "routingPattern": "/workerProfileCostingAllocation/{workerID}",
+      "page": {
+        "id": "workerProfileCostingAllocation"
+      }
+    },
+    {
+      "id": "ViewSearchWorkerByOrganization",
+      "routingPattern": "/ViewSearchWorkerByOrganization",
+      "page": {
+        "id": "ViewSearchWorkerByOrganization"
+      }
+    },
+    {
+      "id": "ViewSelectWorker",
+      "routingPattern": "/ViewSelectWorker",
+      "page": {
+        "id": "ViewSelectWorker"
+      }
+    },
+    {
+      "id": "ParentActionAssignCostingAllocationprompt",
+      "routingPattern": "/ParentActionAssignCostingAllocationprompt/{eventStepId}",
+      "page": {
+        "id": "ParentActionAssignCostingAllocationprompt"
+      }
+    },
+    {
+      "id": "ApprovalDashboard",
+      "routingPattern": "/ApprovalDashboard",
+      "page": {
+        "id": "ApprovalDashboard"
+      }
+    },
+    {
+      "id": "CostingAllocationLineDataApproval",
+      "routingPattern": "/CostingAllocationLineDataApproval",
+      "page": {
+        "id": "CostingAllocationLineDataApproval"
+      }
+    },
+    {
+      "id": "ViewAllCostingAllocations",
+      "routingPattern": "/ViewAllCostingAllocations",
+      "page": {
+        "id": "ViewAllCostingAllocations"
+      }
+    },
+    {
+      "id": "SalaryOverTheCap",
+      "routingPattern": "/SalaryOverTheCap",
+      "page": {
+        "id": "SalaryOverTheCap"
+      }
+    },
+    {
+      "id": "viewRetroActive_AllWorkers",
+      "routingPattern": "/viewRetroActive_AllWorkers",
+      "page": {
+        "id": "viewRetroActive_AllWorkers"
+      }
+    },
+    {
+      "id": "ViewRetroactiveAllocation",
+      "routingPattern": "/ViewRetroactiveAllocation",
+      "page": {
+        "id": "ViewRetroactiveAllocation"
+      }
+    },
+    {
+      "id": "viewRetroActive_AllWorker_Report",
+      "routingPattern": "/viewRetroActive_AllWorker_Report",
+      "page": {
+        "id": "viewRetroActive_AllWorker_Report"
+      }
+    },
+    {
+      "id": "CostingAllocationSendBackToPreparerAction",
+      "routingPattern": "/CostingAllocationSendBackToPreparerAction/{eventStepId}",
+      "page": {
+        "id": "CostingAllocationSendBackToPreparerAction"
+      }
+    },
+    {
+      "id": "CostingAllocationSendBackToPreparerDetails",
+      "routingPattern": "/CostingAllocationSendBackToPreparerDetails/{eventId}",
+      "page": {
+        "id": "CostingAllocationSendBackToPreparerDetails"
+      }
+    }
+  ],
+  "applicationId": "labormanagement_v3_gnqwhx",
+  "dataProviders": [
+    {
+      "key": "Workday-WQL",
+      "value": "https://api.workday.com/wql/v1"
+    },
+    {
+      "key": "WORKDAY-APP",
+      "value": "https://api.workday.com/apps/labormanagement_v3_gnqwhx/v1"
+    },
+    {
+      "key": "WORKDAY-BP",
+      "value": "https://api.workday.com/businessProcess/v1"
+    },
+    {
+      "key": "WORKDAY-COMMON",
+      "value": "https://api.workday.com/common/v1"
+    },
+    {
+      "key": "WORKDAY-ORCHESTRATION",
+      "value": "https://api.us.wcp.workday.com/orchestrate/v1/apps/labormanagement_v3_gnqwhx/orchestrations"
+    },
+    {
+      "key": "WORKDAY-CONNECT",
+      "value": "https://api.us.wcp.workday.com/connect/v1"
+    }
+  ]
+}

@@ -1,0 +1,379 @@
+{
+  "securityDomains": [
+    "SetUpCostingAllocationAttributes"
+  ],
+  "id": "EarningGroupAdminPage",
+  "endPoints": [
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getEarningGroups",
+      "authType": "sso",
+      "url": "<% '/data?query=' + string:urlEncode('SELECT workdayID as id, earningGroupFromAdminPage,  earningGroupName, earnings{earningId as id, earningDescriptor as descriptor} FROM labormanagement_v3_gnqwhx_earningGroups WHERE earningGroupFromAdminPage = true') %>"
+    },
+    {
+      "baseUrlType": "WORKDAY-ORCHESTRATION",
+      "name": "getEarnings",
+      "authType": "sso",
+      "httpMethod": "GET",
+      "url": "/GetReferencessSync/launch?referenceID=Earning_Code"
+    },
+    {
+      "baseUrlType": "WORKDAY-APP",
+      "name": "getExtendEarnings",
+      "authType": "sso",
+      "url": "/earnings"
+    },
+    {
+      "baseUrlType": "Workday-WQL",
+      "name": "getExtendEarningsDeffered",
+      "authType": "sso",
+      "deferred": true,
+      "url": "<% 
+        return '/data?query=' + string:urlEncode('SELECT workdayID as id, earningId FROM labormanagement_v3_gnqwhx_earnings WHERE earningId = \\'' + earningID + '\\''); %>"
+    }
+  ],
+  "outboundData": {
+    "outboundEndPoints": [
+      {
+        "name": "postEarning",
+        "httpMethod": "POST",
+        "baseUrlType": "WORKDAY-APP",
+        "url": "/earnings?bulk=true",
+        "exclude": "<% empty(pageVariables.earningsToPost) %>",
+        "onSend": "<%
+          var payload = {
+            'data': pageVariables.earningsToPost
+          };          
+          return payload ?? {:};
+        %>"
+      },
+      {
+        "name": "patchEarningGroups",
+        "httpMethod": "PATCH",
+        "baseUrlType": "WORKDAY-APP",
+        "exclude": "<% empty(pageVariables.earningGroupPatch) %>",
+        "url": "/earningGroups?bulk=true",
+        "onSend": "<%
+          var earningGroupMapped = pageVariables.earningGroupPatch ?? [];
+          
+          //console.info('updated Extend Earning', json:asJSON(updatedExtendEarnings)); 
+          var dataPayload = [];
+          var postedEarnings = postEarning.data.map(l =>{{'id': (l.body.id ?? ''), 'earningId': (l.body.earningId ?? '')}}) ?? [];
+          for(var x: earningGroupMapped){
+            var rowEarning = x.earnings.map(x =>{x.id}) ?? [];
+            if(!empty(rowEarning)){
+              /**
+              var updatedExtendEarnings = getExtendEarningsDeffered.invoke({'earningID': rowEarning});
+              var distinctEarnings = [];
+
+              //var extendEarningsFilterred = updatedExtendEarnings.data.filter(y =>{rowEarning.contains(y.earningId)});
+              for(var t : (updatedExtendEarnings.data ?? [])){
+                console.info('Earnings object: ' + json:asJSON(t) + ' distinct earnings ' + json:asJSON(distinctEarnings));
+                if(!(distinctEarnings.map(c =>{c.earningId ?? ''}).contains(t.earningId ?? ''))){
+                  distinctEarnings.add(t);
+                }
+              }
+              **/
+               var distinctEarnings = [];
+              for( var t : rowEarning){
+              //  var extendObjectFiltered = postedEarnings.filter(q =>{t == q.earningId ?? []});
+           
+                var updatedExtendEarnings = getExtendEarningsDeffered.invoke({'earningID': t}).data[0] ?? {:};
+                if(!empty(updatedExtendEarnings)){
+                  if(!(distinctEarnings.map(c =>{c.earningId ?? ''}).contains(t ?? ''))){
+                    var earningPayload = {
+                      'id': (updatedExtendEarnings.id ?? ''),
+                      'earningId': (updatedExtendEarnings.earningId ?? '')
+                    };
+                    distinctEarnings.add(earningPayload);
+                  }
+                }
+              }
+                
+              var earningGroupPayload = {
+                'id': x.id,
+                'earningGroupName': (x.earningGroupName ?? ''),
+                'earnings': (distinctEarnings.map(x =>{{'id': x.id ?? ''}}) ?? []), 
+                'earningGroupFromAdminPage': true,
+                'earningSortOrder': (x.sortorder ?? 0)
+              }
+              dataPayload.add(earningGroupPayload);
+            }
+          }
+          var finalPayload = {'data': (dataPayload ?? [])};
+          
+      
+          return finalPayload;
+        %>"
+      },
+      {
+        "name": "postEarningGroup",
+        "httpMethod": "POST",
+        "exclude": "<% empty(pageVariables.earningGroupPost) %>",
+        "baseUrlType": "WORKDAY-APP",
+        "url": "/earningGroups?bulk=true",
+        "onSend": "<%
+          var earningGroupMapped = pageVariables.earningGroupPost ?? [];
+
+          var dataPayload = [];
+          for(var x: earningGroupMapped){
+            var rowEarning = x.earnings.map(x =>{x.id}) ?? [];
+            if(!empty(rowEarning)){
+              /**
+              var updatedExtendEarnings = getExtendEarningsDeffered.invoke({'earningID': rowEarning});
+              console.info('updated extend earnings: ' + json:asJSON(updatedExtendEarnings));
+              var distinctEarnings = [];
+              //var extendEarningsFilterred = updatedExtendEarnings.data.filter(y =>{rowEarning.contains(y.earningId)});
+              for(var t : (updatedExtendEarnings.data ?? [])){
+                if(!(distinctEarnings.map(c =>{c.earningId ?? ''}).contains(t.earningId ?? ''))){
+                  distinctEarnings.add(t);
+                }
+              }
+              **/
+              var distinctEarnings = [];
+              for( var t : rowEarning){
+              //  var extendObjectFiltered = postedEarnings.filter(q =>{t == q.earningId ?? []});
+             
+                var updatedExtendEarnings = getExtendEarningsDeffered.invoke({'earningID': t}).data[0] ?? {:};
+                if(!empty(updatedExtendEarnings)){
+                  if(!(distinctEarnings.map(c =>{c.earningId ?? ''}).contains(t ?? ''))){
+                    var earningPayload = {
+                      'id': (updatedExtendEarnings.id ?? ''),
+                      'earningId': (updatedExtendEarnings.earningId ?? '')
+                    };
+                    distinctEarnings.add(earningPayload);
+                  }
+                }
+              }
+                
+              var earningGroupPayload = {
+                'earningGroupName': (x.earningGroupName ?? ''),
+                'earnings': (distinctEarnings.map(x =>{{'id': x.id ?? ''}}) ?? []), 
+                'earningGroupFromAdminPage': true,
+                'earningSortOrder': (x.sortorder ?? 0)
+              }
+              dataPayload.add(earningGroupPayload);
+            }
+          }
+          var finalPayload = {'data': (dataPayload ?? [])};
+          
+          return finalPayload;
+        %>"
+      },
+      {
+        "name": "deleteEarningGroup",
+        "authType": "sso",
+        "url": "<% '/earningGroups/' + onLoadValues.value.id %>",
+        "httpMethod": "DELETE",
+        "baseUrlType": "WORKDAY-APP"
+      }
+    ]
+  },
+  "onLoad": "<% 
+    pageVariables.earningsOnLoad = getEarningGroups.data.map(x => {x.earnings ?? []});
+    pageVariables.earningsOnLoad = list:flatten(pageVariables.earningsOnLoad);
+    pageVariables.earningsOnPage = pageVariables.earningsOnLoad.map(x =>{{'id': x.id, 'descriptor': x.descriptor}});
+    pageVariables.earningsToSelectonLoad = getEarningsToChooseFrom((pageVariables.earningsOnPage ?? []), (getEarnings ?? []));
+    pageVariables.gridIndex = 0;
+  %>",
+  "onSubmit": "<% 
+   pageVariables.earningsToPost = getEarningstoPostonPage(earningGroupGrid.rows, getExtendEarnings);
+   var counter = 0;
+   pageVariables.earningGroupPatch = [];
+   pageVariables.earningGroupPost = [];
+   for(var t: earningGroupGrid.rows){
+    if(empty(t.childrenMap.nameCol.childrenMap.onLoadValues.value.id)){
+      var postBody = {
+        'sortorder': counter,
+        'earningGroupName': (t.childrenMap.nameCol.childrenMap.earningGroupName.value ?? ''), 
+        'earnings': t.childrenMap.earningsCol.childrenMap.earnings.selectedEntries,
+        'earningGroupFromAdminPage': true
+      };
+      pageVariables.earningGroupPost.add(postBody);
+    }else{
+      var patchBody = {
+        'sortorder': counter,
+        'id': (t.childrenMap.nameCol.childrenMap.onLoadValues.value.id ?? ''),
+        'earningGroupName': (t.childrenMap.nameCol.childrenMap.earningGroupName.value ?? ''),
+        'earnings': t.childrenMap.earningsCol.childrenMap.earnings.selectedEntries,
+        'earningGroupFromAdminPage': true
+      };
+      pageVariables.earningGroupPatch.add(patchBody);
+    }
+    counter = counter +1;
+   }
+   
+
+
+  %>",
+  "script": "<% 
+    var getEarningsToChooseFrom = function(earningsOnPage, allEarnings){
+      var allEarningsValues = allEarnings.map(x =>{{'id': x.id, 'descriptor': x.descriptor}}) ?? [];
+      var remainingEarnings = allEarningsValues.removeAll(earningsOnPage);
+      return remainingEarnings.distinct() ?? [];
+    }
+
+   var gridMap = function(grid){
+    var gridMapped = !empty(grid)? grid.map(x =>{x.childrenMap.earningsCol.childrenMap.earnings.selectedEntries}) : [];
+    gridMapped = list:flatten(gridMapped);
+    return gridMapped ?? [];
+   }
+
+   var setGridRows = function(earningToSelectFrom, grid){
+    var gridRows = grid.rows ?? []
+    var earningToSelect = earningToSelectFrom ?? [];
+    var counter = 0;
+    for(var x : gridRows){
+      var earningsOnGrid = x.childrenMap.earningsCol.childrenMap.earnings.selectedEntries.distinct() ?? [];
+      var earningForWidget = earningToSelect.addAll(earningsOnGrid).distinct();
+      x.childrenMap.earningsCol.childrenMap.earnings.setValues(earningForWidget);
+      x.childrenMap.earningsCol.childrenMap.earnings.setValue(earningsOnGrid.map(x =>{x.id}));
+      counter = counter + 1;
+    }
+   }
+
+
+    var getEarningstoPostonPage = function(earningGrid, extendEarnings){
+      var payload = {:};
+      var earningFiltered = earningGrid.filter(t =>{!empty(x.childrenMap.nameCol.childrenMap.onLoadValues.value ?? '')});
+      var gridMapped = earningGrid.map(x => {{'earningGroupName': (x.childrenMap.nameCol.childrenMap.earningGroupName.value ?? ''), 'earnings': (x.childrenMap.earningsCol.childrenMap.earnings.selectedEntries ?? [])}});
+    
+      var extendEarningsMapped = extendEarnings.data.map(x =>{{'id': x.earningId, 'descriptor': x.earningDescriptor}});
+    
+      var earningsToAdd = [];
+      for(var x: gridMapped){
+        var gridEarningsMapped = x.earnings;
+
+        var  removedEarnings = gridEarningsMapped.removeAll(extendEarningsMapped);
+        removedEarnings = removedEarnings.map(x =>{{'earningId': x.id, 'earningDescriptor': x.descriptor}});
+        earningsToAdd.addAll(removedEarnings);
+      }
+      return earningsToAdd;
+
+    }
+  %>",
+  "presentation": {
+    "title": {
+      "type": "title",
+      "label": "Earning Group Admin Page"
+    },
+    "body": {
+      "type": "section",
+      "horizontal": false,
+      "children": [
+        {
+          "type": "fieldSet",
+          "id": "earningAdminGrid",
+          "children": [
+            {
+              "type": "grid",
+              "id": "earningGroupGrid",
+              "label": "Earning Groups",
+              "rows": "<% getEarningGroups.data ?? [] %>",
+              "rowVariableName": "earningGroup",
+              "doNotRemove": false,
+              "deleteEndPoint": "deleteEarningGroup",
+              "indexVariableName": "i",
+              "showRowMover": true,
+              "onRowAdd": "<%
+                pageVariables.earningsToSelectFrom = getEarningsToChooseFrom((pageVariables.earningsOnPage ?? []), (getEarnings ?? []));
+                setGridRows(pageVariables.earningsToSelectFrom, earningGroupGrid);
+              %>",
+              "columns": [
+                {
+                  "type": "column",
+                  "id": "earningGroupNameColID",
+                  "label": "Name",
+                  "columnId": "nameCol",
+                  "cellTemplate": {
+                    "type": "fieldSet",
+                    "id": "earningGroupFieldSet",
+                    "children": [
+                      {
+                        "type": "hidden",
+                        "id": "onLoadValues",
+                        "value": "<%
+                         earningGroup ?? {:};
+                        %>"
+                      },
+                      {
+                        "type": "text",
+                        "enabled": true,
+                        "id": "earningGroupName",
+                        "value": "<% earningGroup.earningGroupName ?? '' %>"
+                      },
+                      {
+                        "type": "number",
+                        "id": "sortorder",
+                        "visible": false,
+                        "value": "<%
+                         i ?? 0;
+                        %>"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "column",
+                  "id": "earning",
+                  "label": "Earnings",
+                  "columnId": "earningsCol",
+                  "cellTemplate": {
+                    "type": "fieldSet",
+                    "id": "earningsFieldSet",
+                    "children": [
+                      {
+                        "type": "instanceList",
+                        "enabled": "true",
+                        "id": "earnings",
+                        "multiSelect": true,
+                        "idKey": "id",
+                        "displayKey": "descriptor",
+                        "values": "<% getEarnings.map(x =>{{'id': x.id, 'descriptor': x.descriptor}}) ?? []; %>",
+                        "selectedValues": "<% earningGroup.earnings.map(x =>{x.id ?? ''}) ?? [] %>",
+                        "_onChange": "<% 
+                          if(!empty(earnings.value)){
+                            pageVariables.earningsOnPage = gridMap(earningGroupGrid.rows);
+                            pageVariables.earningsToSelectFrom = getEarningsToChooseFrom((pageVariables.earningsOnPage ?? []), (getEarnings ?? []));
+                            setGridRows(pageVariables.earningsToSelectFrom, earningGroupGrid);
+                          }
+                        %>"
+                      },
+                      {
+                        "type": "pageActionButton",
+                        "label": "Add",
+                        "id": "addEarningsButton",
+                        "visible": "<% false %>",
+                        "onClick": "<% 
+                          if(!empty(earnings.value)){
+                            pageVariables.earningsOnPage = gridMap(earningGroupGrid.rows);
+                            pageVariables.earningsToSelectFrom = getEarningsToChooseFrom((pageVariables.earningsOnPage ?? []), (getEarnings ?? []));
+                            setGridRows(pageVariables.earningsToSelectFrom, earningGroupGrid);
+                          };
+                          if(earnings.isEnabled()){
+                            earnings.setEnabled(false);
+                          }else{
+                            earnings.setEnabled(true);
+                          }
+                        %>"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "visible": false,
+              "id": "onLoadScript",
+              "_value": "<% 
+                setGridRows(pageVariables.earningsToSelectonLoad, earningGroupGrid);
+              %>"
+            }
+          ]
+        }
+      ]
+    },
+    "pageType": "EDIT"
+  }
+}
